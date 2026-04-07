@@ -49,5 +49,10 @@ export const builtins = () => [
 		name: 'SugarCube',
 		url: 'story-formats/sugarcube-2.37.3/format.js',
 		version: '2.37.3'
+	},
+	{
+		name: 'Freebird',
+		url: 'story-formats/freebird-1.0.0/format.js',
+		version: '1.0.0'
 	}
 ];

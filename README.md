@@ -1,71 +1,159 @@
-## twinejs
+# Twine · Freebird 定制版
 
-by Chris Klimas, Lorenzo Ancora, Leon Arnott, Daithi O Crualaoich, Ingrid Cheung,
-Thomas Michael Edwards, Micah Fitch, Juhana Leinonen, Michael Savich, and Ross Smith
+基于 [Twine](https://twinery.org) 二次开发，集成自研 **Freebird** 故事格式。面向开发者和 AI 协作场景，追求简洁、直觉、零学习成本。
 
-### SYNOPSIS
+## 与原版的区别
 
-This is a port of Twine to a browser and Electron app. See
-[twinery.org](https://twinery.org) for more info.
+| | 原版 Twine + Harlowe | 本版 + Freebird |
+|---|---|---|
+| 代码风格 | 特殊宏语法 `(if:)` `(set:)` | 标准 JavaScript + `print()` |
+| 变量 | `$var` 全局唯一 | `g`/`l`/`p` 三级作用域 |
+| HTML | 受限，需转义 | 原生直写，自动识别 |
+| 编辑器工具栏 | 英文，功能有限 | 中文，31 个命令 |
+| 项目管理 | 单文件 | 支持文件夹结构 + CLI 构建 |
+| AI 友好 | 差 | 专门设计，附 AI 参考手册 |
 
-The story formats in minified format under `story-formats/` exist in separate
-repositories:
+## 快速开始
 
--   [Harlowe](https://foss.heptapod.net/games/harlowe/)
--   [Paperthin](https://github.com/klembot/paperthin)
--   [Snowman](https://github.com/klembot/snowman)
--   [SugarCube](https://github.com/tmedwards/sugarcube-2)
+```bash
+npm install
+npm start          # 启动开发服务器 http://localhost:5173
+```
 
-#### BUILDS
+1. 创建新故事
+2. 故事详情 → 故事格式 → 选择 **Freebird 1.0.0**
+3. 编辑 passage，享受中文工具栏
 
-Binary packages for Twine are available on the
-[Releases](https://github.com/klembot/twinejs/releases) tab for Windows, MacOS
-and Linux. Community-created builds exist on other platforms, such as the Snap
-Store or Arch User Repository. As always, only install from sources you trust.
+## Freebird 语法
 
-### INSTALL
+### 文本
+纯文本自动分段。含 `<div>` 等块级标签时切换为 HTML 直出模式。
 
-Run `npm install` at the top level of the directory to install all goodies.
+### 变量显示
+```
+你有 $gold$ 个金币          全局变量
+奖励: $l.bonus$             局部变量
+任务: $p.quest$             传递变量
+```
 
-Working with the documentation requires installing
-[mdbook](https://rust-lang.github.io/mdBook/), which is not a Node-based
-project. You can either install it directly from the project web site or use
-your operating system's package manager.
+`$name$` 和 `#name#` 两种分隔符等价。
 
-### BUILDING
+### 表达式
+```
+{{ g.gold + 100 }}
+{{ g.name.toUpperCase() }}
+```
 
-Run `npm start` to begin serving a development version of Twine locally. This
-server will automatically update with changes you make.
+### 代码块
+```
+{%
+  if (g.gold > 50) {
+    print("你很富有！");
+  } else {
+    print("继续努力。");
+  }
+%}
+```
 
-Run `npm run start:electron` to run a development version of the Electron app.
-**Running this can damage files in your Twine storied folder. Take a backup copy
-of this folder before proceeding.** Most of the app will automatically update as
-you work, but if you want the app to read story files initially again, you will
-need to restart the process.
+所有逻辑在 `{% %}` 内部完成，通过 `print()` 输出。纯正 JavaScript，无魔法语法。
 
-To create a release, run `npm run build`. Finished files will be found under
-`dist/`. In order to build Windows apps on macOS or Linux, you will need to have
-[Wine](https://www.winehq.org/) and [makensis](http://nsis.sourceforge.net/)
-installed. A file named `2.json` is created under `dist/` which contains
-information relevant to the autoupdater process, and is currently posted to
-https://twinery.org/latestversion/2.json.
+### 链接
+```
+[[城堡大厅]]                          基本跳转
+[[进入城堡->城堡大厅]]                  带显示文本
+[[进入->城堡|{ gold: 50 }]]           带参数传递
+```
 
-The build process looks for these environment variables when notarizing a macOS
-build:
+### API（代码块内调用）
+```javascript
+Freebird.goto("目标")      // 跳转
+Freebird.back()            // 返回
+Freebird.save("slot1")     // 存档
+Freebird.load("slot1")     // 读档
+```
 
-- `APPLE_APP_ID`: The app ID to use. The convention is `country.company.appname`.
-- `APPLE_ID`: User name of the Apple account to use for notarization.
-- `APPLE_ID_PASSWORD`: App-specific password for the Apple account to use for
-  notarization.
-- `APPLE_TEAM_ID`: ID of the Apple team account to use for notarization.
+完整 API 见 [AI_REFERENCE.md](AI_REFERENCE.md)。
 
-If any of these environment variables are not set, the build process will skip
-notarizing. This means users will need to right-click the application and open
-it manually.
+## 编辑器工具栏
 
-You must have the full Xcode app installed to notarize the app, not just the
-Xcode command line tools.
+12 个工具（含子菜单），全部中文标签，纯 SVG 矢量图标：
 
-`npm test` will test the source code respectively.
+**加粗** · **斜体** · **删除线** · **标题** H1-H4 · **链接** 基本/箭头/带参 · **列表** 有序/无序 · **表格** · **图片** · **分隔线** · **变量** 显示/设置/表达式 · **代码** 代码块/条件/循环/print/goto/save · **HTML** div/span/p/自定义
 
-`npm run clean` will delete existing files in `electron-build/` and `dist/`.
+## 项目模式（AI Vibe）
+
+支持文件夹组织场景，每个 passage 一个 `.md` 文件：
+
+```
+my-story/
+├── freebird.json      # 总纲
+├── global.js          # 全局脚本
+├── global.css         # 全局样式
+├── 开始.md
+├── 城堡/
+│   ├── 大厅.md
+│   └── 地牢.md
+└── dist/story.html    # 构建输出
+```
+
+### CLI 工具
+
+```bash
+# 位于 public/story-formats/freebird-1.0.0/freebird-cli.js
+
+node freebird-cli.js build              # 文件夹 → 单文件 HTML
+node freebird-cli.js unpack story.html  # 单文件 → 文件夹
+node freebird-cli.js twee               # 导出 Twee 格式
+```
+
+## CSS 自定义
+
+在 Story Stylesheet 中覆盖 CSS 变量：
+
+```css
+:root {
+  --fb-bg: #fff;
+  --fb-color: #1a1a1a;
+  --fb-font-family: Georgia, serif;
+  --fb-font-size: 1.125rem;
+  --fb-max-width: 40em;
+  --fb-link-color: #4e7fff;
+}
+```
+
+支持 `@import` Google Fonts、`@font-face` 自定义字体。
+
+## AI 协作
+
+**→ 详细参考手册：[AI_REFERENCE.md](AI_REFERENCE.md)**
+
+AI 可以：
+- 直接读写 `.md` 场景文件
+- 通过 `freebird.json` 了解故事全貌
+- 用 `freebird-cli.js build` 构建测试
+- 无需理解 Twine 内部结构
+
+## 文件结构
+
+```
+public/story-formats/freebird-1.0.0/
+├── format.js          # 故事格式（运行时 + 编辑器扩展）
+├── icon.svg           # 格式图标
+└── freebird-cli.js    # CLI 工具
+
+src/store/story-formats/defaults.ts   # 格式注册
+```
+
+## 构建与开发
+
+```bash
+npm install            # 安装依赖
+npm start              # 开发服务器
+npm run build          # 生产构建
+npm test               # 运行测试
+```
+
+## 致谢
+
+基于 [Twine](https://github.com/klembot/twinejs) by Chris Klimas 等。
+内置故事格式：[Harlowe](https://foss.heptapod.net/games/harlowe/)、[Snowman](https://github.com/klembot/snowman)、[SugarCube](https://github.com/tmedwards/sugarcube-2)。
