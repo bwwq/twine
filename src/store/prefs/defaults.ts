@@ -21,7 +21,7 @@ export const defaults = (): PrefsState => ({
 	},
 	storyFormat: {
 		name: 'Freebird',
-		version: '1.0.1'
+		version: '1.0.2'
 	},
 	storyFormatListFilter: 'current',
 	storyListSort: 'name',
