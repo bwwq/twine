@@ -1,20 +1,20 @@
 var _svg = function(d, c) {
   return 'data:image/svg+xml,' + encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="' + c + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '"/></svg>'
+    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="' + c + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'
   );
 };
-var _B = 'M4 2h5a3 3 0 0 1 0 6H4zm0 6h6a3 3 0 0 1 0 6H4z';
-var _I = 'M6 2h4M6 14h4M10 2L6 14';
-var _S = 'M5 3c-1 0-3 1-2 3s3 2 5 2s4 1 3 3s-2 3-4 2"/><line x1="2" y1="8" x2="14" y2="8';
-var _H = 'M3 2v12M13 2v12M3 8h10';
-var _LK = 'M7 4H4a2 2 0 0 0 0 4h2M9 4h3a2 2 0 0 1 0 4h-2M5 8h6';
-var _LI = 'M6 3h8M6 8h6M6 13h8"/><circle cx="3" cy="3" r="1" fill="#xxx"/><circle cx="3" cy="8" r="1" fill="#xxx"/><circle cx="3" cy="13" r="1" fill="#xxx';
-var _TB = '<rect x="1" y="3" width="14" height="10" rx="1"/><path d="M1 7h14M6 7v6M11 7v6';
-var _IM = '<rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="5" cy="7" r="1.5"/><path d="M1 11l4-3 3 2 3-2 3 3';
-var _HR = 'M2 8h12';
-var _VA = 'M2 3l3 10M7 3L4 13"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="8" x2="12" y2="13';
-var _CD = 'M5 4L2 8l3 4M11 4l3 4-3 4M9 2L7 14';
-var _HT = 'M3 2h10M8 2v12M5 14h6';
+var _B = '<path d="M4 2h5a3 3 0 0 1 0 6H4zm0 6h6a3 3 0 0 1 0 6H4z"/>';
+var _I = '<path d="M6 2h4M6 14h4M10 2L6 14"/>';
+var _S = '<path d="M5 3c-1 0-3 1-2 3s3 2 5 2s4 1 3 3s-2 3-4 2"/><line x1="2" y1="8" x2="14" y2="8"/>';
+var _H = '<path d="M3 2v12M13 2v12M3 8h10"/>';
+var _LK = '<path d="M7 4H4a2 2 0 0 0 0 4h2M9 4h3a2 2 0 0 1 0 4h-2M5 8h6"/>';
+var _LI = '<path d="M6 3h8M6 8h6M6 13h8"/><circle cx="3" cy="3" r="1" fill="#xxx"/><circle cx="3" cy="8" r="1" fill="#xxx"/><circle cx="3" cy="13" r="1" fill="#xxx"/>';
+var _TB = '<rect x="1" y="3" width="14" height="10" rx="1"/><path d="M1 7h14M6 7v6M11 7v6"/>';
+var _IM = '<rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="5" cy="7" r="1.5"/><path d="M1 11l4-3 3 2 3-2 3 3"/>';
+var _HR = '<path d="M2 8h12"/>';
+var _VA = '<path d="M2 3l3 10M7 3L4 13"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="8" x2="12" y2="13"/>';
+var _CD = '<path d="M5 4L2 8l3 4M11 4l3 4-3 4M9 2L7 14"/>';
+var _HT = '<path d="M3 2h10M8 2v12M5 14h6"/>';
 
 this.editorExtensions = {
   twine: {
