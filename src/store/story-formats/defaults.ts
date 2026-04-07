@@ -51,16 +51,8 @@ export const builtins = () => [
 		version: '2.37.3'
 	},
 	{
-		id: '1e5e016f-124e-4f7f-bd37-9af70a83e0ac',
 		name: 'Freebird',
-		version: '1.0.0',
-		description: '自由轻量的故事格式。',
-		author: 'Custom',
-		image: 'icon.svg',
 		url: 'story-formats/freebird-1.0.0/format.js',
-		properties: {
-			name: 'Freebird',
-			version: '1.0.0'
-		}
+		version: '1.0.0'
 	}
 ];
