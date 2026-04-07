@@ -1,6 +1,6 @@
 window.storyFormat({
 	"name": "Freebird",
-	"version": "1.0.2",
+	"version": "1.0.0",
 	"author": "Custom",
 	"description": "自由轻量的故事格式。",
 	"proofing": false,
