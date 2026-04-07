@@ -71,7 +71,7 @@ this.editorExtensions = {
           fbCustomTag: function(e) { var s = e.getSelection() || "内容"; e.replaceSelection("<标签>" + s + "</标签>") }
         },
         toolbar: function(editor, env) {
-          var c = (env && env.appTheme === 'dark') ? '#eee' : ((env && env.foregroundColor) ? env.foregroundColor : '#333');
+          var c = (env && env.appTheme === 'dark') ? '#cccccc' : '#555555';
           var b = _svg(_B, c);
           var i = _svg(_I, c);
           var s = _svg(_S, c);
