@@ -6,16 +6,12 @@ export const defaults = (): PrefsState => ({
 	codeEditorFontScale: 1,
 	dialogWidth: 600,
 	disabledStoryFormatEditorExtensions: [],
-	donateShown: false,
+	donateShown: true,
 	editorCursorBlinks: true,
 	firstRunTime: new Date().getTime(),
 	lastUpdateSeen: '',
 	lastUpdateCheckTime: new Date().getTime(),
-	locale: (window.navigator as any).userLanguage ||
-		window.navigator.language ||
-		(window.navigator as any).browserLanguage ||
-		(window.navigator as any).systemLanguage ||
-		'en-us',
+	locale: 'zh-cn',
 	passageEditorFontFamily: 'var(--font-system)',
 	passageEditorFontScale: 1,
 	passageTagDisplay: 'color',
@@ -24,13 +20,13 @@ export const defaults = (): PrefsState => ({
 		version: '1.0.0'
 	},
 	storyFormat: {
-		name: 'Harlowe',
-		version: '3.3.9'
+		name: 'Freebird',
+		version: '1.0.0'
 	},
 	storyFormatListFilter: 'current',
 	storyListSort: 'name',
 	storyListTagFilter: [],
 	storyTagColors: {},
 	useCodeMirror: true,
-	welcomeSeen: false,
+	welcomeSeen: true,
 });

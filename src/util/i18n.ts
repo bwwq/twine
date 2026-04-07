@@ -8,8 +8,9 @@ i18n
 	.use(HttpBackend)
 	.use(initReactI18next)
 	.init({
-		debug: process.env.NODE_ENV === 'development',
+		debug: false,
 		backend: {loadPath: `${import.meta.env.BASE_URL}locales/{{lng}}.json`},
+		lng: 'zh-cn',
 		fallbackLng: 'en-us',
 		interpolation: {
 			escapeValue: false
