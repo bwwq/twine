@@ -5,14 +5,14 @@ var _svg = function(d, c) {
 };
 var _B = '<path d="M4 2h5a3 3 0 0 1 0 6H4zm0 6h6a3 3 0 0 1 0 6H4z"/>';
 var _I = '<path d="M6 2h4M6 14h4M10 2L6 14"/>';
-var _S = '<path d="M5 3c-1 0-3 1-2 3s3 2 5 2s4 1 3 3s-2 3-4 2"/><line x1="2" y1="8" x2="14" y2="8"/>';
+var _S = '<path d="M5 3c-1 0-3 1-2 3s3 2 5 2s4 1 3 3s-2 3-4 2M2 8h12"/>';
 var _H = '<path d="M3 2v12M13 2v12M3 8h10"/>';
 var _LK = '<path d="M7 4H4a2 2 0 0 0 0 4h2M9 4h3a2 2 0 0 1 0 4h-2M5 8h6"/>';
-var _LI = '<path d="M6 3h8M6 8h6M6 13h8"/><circle cx="3" cy="3" r="1" fill="#xxx"/><circle cx="3" cy="8" r="1" fill="#xxx"/><circle cx="3" cy="13" r="1" fill="#xxx"/>';
-var _TB = '<rect x="1" y="3" width="14" height="10" rx="1"/><path d="M1 7h14M6 7v6M11 7v6"/>';
-var _IM = '<rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="5" cy="7" r="1.5"/><path d="M1 11l4-3 3 2 3-2 3 3"/>';
+var _LI = '<path d="M6 3h8M6 8h6M6 13h8M3 3v.01M3 8v.01M3 13v.01"/>';
+var _TB = '<path d="M1 3h14v10H1zM1 7h14M6 7v6M11 7v6"/>';
+var _IM = '<path d="M1 3h14v10H1zM4 6.5A1.5 1.5 0 1 1 6 6.5A1.5 1.5 0 1 1 4 6.5zM1 11l4-3 3 2 3-2 3 3"/>';
 var _HR = '<path d="M2 8h12"/>';
-var _VA = '<path d="M2 3l3 10M7 3L4 13"/><circle cx="12" cy="5" r="2"/><line x1="12" y1="8" x2="12" y2="13"/>';
+var _VA = '<path d="M2 3l3 10M7 3L4 13M12 4a1 1 0 1 1 0 2a1 1 0 1 1 0-2zM12 8v5"/>';
 var _CD = '<path d="M5 4L2 8l3 4M11 4l3 4-3 4M9 2L7 14"/>';
 var _HT = '<path d="M3 2h10M8 2v12M5 14h6"/>';
 
