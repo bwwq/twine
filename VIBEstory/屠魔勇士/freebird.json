@@ -1,0 +1,22 @@
+{
+  "name": "屠魔勇士 - 经典RPG范例",
+  "ifid": "C1045E1B-94F5-408E-A3A8-1E7AEBE95E2B",
+  "start": "开始",
+  "format": "Freebird",
+  "formatVersion": "1.0.0",
+  "globals": {
+    "playerName": "阿托斯",
+    "level": 1,
+    "hp": 100,
+    "max_hp": 100,
+    "atk": 15,
+    "gold": 0,
+    "exp": 0,
+    "exp_needed": 30,
+    "boss_weakness": false,
+    "boss_killed": false,
+    "tavern_friendship": 0,
+    "monster_kills": 0
+  },
+  "tags": {}
+}

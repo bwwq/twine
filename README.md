@@ -123,12 +123,14 @@ node freebird-cli.js twee               # 导出 Twee 格式
 
 ```css
 :root {
-  --fb-bg: #fff;
-  --fb-color: #1a1a1a;
-  --fb-font-family: Georgia, serif;
-  --fb-font-size: 1.125rem;
-  --fb-max-width: 40em;
-  --fb-link-color: #4e7fff;
+  --fb-bg: #000000;
+  --fb-color: #ffffff;
+  --fb-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --fb-font-size: 24px;
+  --fb-line-height: 1.5;
+  --fb-max-width: 800px;
+  --fb-link-color: #4169E1;
+  --fb-link-hover: #00bfff;
 }
 ```
 

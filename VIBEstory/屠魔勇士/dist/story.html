@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>屠魔勇士 - 经典RPG范例</title>
+<style>
+:root {
+--fb-bg: #000000;
+--fb-color: #ffffff;
+--fb-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+--fb-font-size: 24px;
+--fb-line-height: 1.5;
+--fb-max-width: 800px;
+--fb-link-color: #4169E1;
+--fb-link-hover: #00bfff;
+}
+body { 
+background: var(--fb-bg); 
+color: var(--fb-color); 
+font-family: var(--fb-font-family); 
+font-size: var(--fb-font-size);
+margin: 5% auto; 
+max-width: var(--fb-max-width); 
+line-height: var(--fb-line-height); 
+padding: 0 5%;
+}
+a { 
+color: var(--fb-link-color); 
+text-decoration: none; 
+font-weight: bold;
+cursor: pointer; 
+transition: color 0.2s;
+}
+a:hover { color: var(--fb-link-hover); }
+#story { transition: opacity 0.3s ease; }
+#story.loading { opacity: 0; }
+tw-storydata { display: none; }
+</style>
+</head>
+<body>
+<div id="story"></div>
+<tw-storydata name="屠魔勇士 - 经典RPG范例" startnode="4" creator="Freebird CLI" creator-version="1.0.0" format="Freebird" format-version="1.0.0" ifid="C1045E1B-94F5-408E-A3A8-1E7AEBE95E2B" options="" tags="" zoom="1" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css">/* ===== 游戏专用样式（不覆盖引擎默认主题） ===== */
+
+/* 战斗面板 */
+.combat-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+}
+
+.combat-character {
+  flex: 1;
+}
+
+.combat-character h3 {
+  margin-top: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  padding-bottom: 5px;
+}
+
+/* 血条 */
+.hp-bar-container {
+  width: 100%;
+  height: 18px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.hp-bar-fill {
+  height: 100%;
+  background: #e74c3c;
+  border-radius: 9px;
+  transition: width 0.3s ease;
+}
+
+.player-hp .hp-bar-fill {
+  background: #2ecc71;
+}
+
+/* 文字强调 */
+.highlight { color: #e879f9; font-weight: bold; }
+.gold { color: #fbbf24; font-weight: bold; }
+.danger { color: #ef4444; font-weight: bold; }
+.system-msg {
+  color: #34d399;
+  font-style: italic;
+  margin: 8px 0;
+}
+</style><script role="script" id="twine-user-script" type="text/twine-javascript">// Auto-generated from freebird.json globals
+g["playerName"] = "阿托斯";
+g["level"] = 1;
+g["hp"] = 100;
+g["max_hp"] = 100;
+g["atk"] = 15;
+g["gold"] = 0;
+g["exp"] = 0;
+g["exp_needed"] = 30;
+g["boss_weakness"] = false;
+g["boss_killed"] = false;
+g["tavern_friendship"] = 0;
+g["monster_kills"] = 0;
+</script><tw-passagedata pid="1" name="小镇/广场" tags="" position="0,0" size="100,100"># 小镇广场
+
+这里是宁静的边境小镇，往来着各种冒险者与行商。
+
+### 【你的状态】
+等级: {{ g.level }}
+HP: &lt;span class=&quot;danger&quot;&gt;{{ g.hp }} / {{ g.max_hp }}&lt;/span&gt;
+攻击力: &lt;span class=&quot;highlight&quot;&gt;{{ g.atk }}&lt;/span&gt;
+金币: &lt;span class=&quot;gold&quot;&gt;{{ g.gold }}&lt;/span&gt; G
+经验值: {{ g.exp }} / {{ g.exp_needed }}
+
+---
+
+### 【设施】
+[[前往酒馆 (休息与情报)-&gt;小镇/酒馆]]
+[[前往铁匠铺 (购买装备)-&gt;小镇/铁匠铺]]
+
+### 【野外】
+[[出城前往幽暗森林-&gt;野外/幽暗森林]]
+
+{%
+  if (g.monster_kills &gt;= 2) {
+    print('&lt;hr&gt;&lt;div class=&quot;highlight system-msg&quot;&gt;【系统警告】感受到一股极其邪恶的气息... 森林深处的结界似乎松动了。&lt;/div&gt;');
+    print('[[前往魔王城决战！-&gt;魔王城/王座]]');
+  }
+%}</tw-passagedata><tw-passagedata pid="2" name="小镇/酒馆" tags="" position="0,0" size="100,100"># 喧闹的独眼猫酒馆
+
+酒馆里挤满了人，老板是个满脸胡茬的男人，正在吧台后擦拭着杯子。
+
+{% py:
+if g[&quot;tavern_friendship&quot;] &gt;= 50 and not g[&quot;boss_weakness&quot;]:
+    print('&lt;div class=&quot;system-msg&quot;&gt;老板放下了杯子，神秘地靠过来：“你是个慷慨的好人... 听说魔王惧怕光属性，只要集火它胸口的红宝石，它就不堪一击。”&lt;/div&gt;')
+    print('&lt;div class=&quot;system-msg highlight&quot;&gt;【情报】获得了魔王的弱点！此战必胜！&lt;/div&gt;')
+    g[&quot;boss_weakness&quot;] = True
+elif g[&quot;tavern_friendship&quot;] &gt;= 50:
+    print('&lt;p&gt;老板笑着向你点头：“随时欢迎你，我的好朋友！”&lt;/p&gt;')
+else:
+    print('&lt;p&gt;老板头也不抬：“要喝酒还是住店？”&lt;/p&gt;')
+%}
+
+### 【选项】
+
+&lt;div style=&quot;margin:20px 0;&quot;&gt;
+  [[【休息】花费 20 金币恢复全部 HP-&gt;小镇/酒馆|{ action: &quot;rest&quot; }]]&lt;br&gt;
+  [[【请客】请老板喝杯好酒，花费 50 金币-&gt;小镇/酒馆|{ action: &quot;drink&quot; }]]
+&lt;/div&gt;
+
+{% py:
+# 处理传入的参数 (变量 p)
+if &quot;action&quot; in p:
+    if p[&quot;action&quot;] == &quot;rest&quot;:
+        if g[&quot;gold&quot;] &gt;= 20:
+            if g[&quot;hp&quot;] &lt; g[&quot;max_hp&quot;]:
+                g[&quot;gold&quot;] -= 20
+                g[&quot;hp&quot;] = g[&quot;max_hp&quot;]
+                print('&lt;script&gt;setTimeout(() =&gt; alert(&quot;花费20金币，生命值已恢复全满！&quot;), 50)&lt;/script&gt;')
+            else:
+                print('&lt;script&gt;setTimeout(() =&gt; alert(&quot;你的生命值已经是满的了，无需休息。&quot;), 50)&lt;/script&gt;')
+        else:
+            print('&lt;script&gt;setTimeout(() =&gt; alert(&quot;金币不足，老板把你赶了出来！&quot;), 50)&lt;/script&gt;')
+            
+    elif p[&quot;action&quot;] == &quot;drink&quot;:
+        if g[&quot;gold&quot;] &gt;= 50:
+            g[&quot;gold&quot;] -= 50
+            g[&quot;tavern_friendship&quot;] += 25
+            print('&lt;script&gt;setTimeout(() =&gt; alert(&quot;老板接过酒一饮而尽，似乎对你更有好感了。&quot;), 50)&lt;/script&gt;')
+        else:
+            print('&lt;script&gt;setTimeout(() =&gt; alert(&quot;金币不足！你看上去像个寒酸的穷光蛋。&quot;), 50)&lt;/script&gt;')
+%}
+
+[[返回广场-&gt;小镇/广场]]</tw-passagedata><tw-passagedata pid="3" name="小镇/铁匠铺" tags="" position="0,0" size="100,100"># 铁砧与锤火铁匠铺
+
+火炉烧得通红，铁匠正挥舞着大锤敲打着一把剑胚。
+
+「要买点什么防身吗？只要你出得起钱，神兵利器我都能打出来！」
+
+当前金币：&lt;span class=&quot;gold&quot;&gt;{{ g.gold }}&lt;/span&gt; G&lt;br&gt;
+当前攻击力：&lt;span class=&quot;highlight&quot;&gt;{{ g.atk }}&lt;/span&gt;
+
+---
+
+### 【武器列表】
+
+[[购买 普通铁剑 (+5 攻击，花费 50 金币)-&gt;小镇/铁匠铺|{ buy: &quot;iron_sword&quot;, cost: 50, atk: 5 }]]&lt;br&gt;
+[[购买 精钢大剑 (+15 攻击，花费 120 金币)-&gt;小镇/铁匠铺|{ buy: &quot;steel_sword&quot;, cost: 120, atk: 15 }]]&lt;br&gt;
+[[购买 传说圣剑 (+50 攻击，花费 500 金币)-&gt;小镇/铁匠铺|{ buy: &quot;holy_sword&quot;, cost: 500, atk: 50 }]]&lt;br&gt;
+
+{% py:
+if &quot;buy&quot; in p:
+    cost = p[&quot;cost&quot;]
+    atk_bonus = p[&quot;atk&quot;]
+    if g[&quot;gold&quot;] &gt;= cost:
+        g[&quot;gold&quot;] -= cost
+        g[&quot;atk&quot;] += atk_bonus
+        print(f'&lt;script&gt;setTimeout(() =&gt; alert(&quot;购买成功！失去 {cost} 金币，攻击力提升 {atk_bonus} 点！当前攻击力变为 {g[&quot;atk&quot;]}&quot;), 50)&lt;/script&gt;')
+    else:
+        print('&lt;script&gt;setTimeout(() =&gt; alert(&quot;穷鬼，别来消遣我！金币不够！&quot;), 50)&lt;/script&gt;')
+%}
+
+---
+[[离开铁匠铺-&gt;小镇/广场]]</tw-passagedata><tw-passagedata pid="4" name="开始" tags="" position="0,0" size="100,100"># 屠魔勇士
+
+年轻的勇者啊，为了拔除盘踞在世界中心的阴霾，你即将踏上征程。传说魔王潜藏于**幽暗森林**最深处的魔王城内。
+
+{% py:
+# 重置或初始化属性
+g[&quot;hp&quot;] = g[&quot;max_hp&quot;]
+g[&quot;gold&quot;] = 100 # 给点初始资金
+g[&quot;level&quot;] = 1
+g[&quot;exp&quot;] = 0
+g[&quot;atk&quot;] = 15
+g[&quot;boss_weakness&quot;] = False
+g[&quot;boss_killed&quot;] = False
+g[&quot;tavern_friendship&quot;] = 0
+g[&quot;monster_kills&quot;] = 0
+%}
+
+&lt;div class=&quot;system-msg&quot;&gt;系统：已完成状态初始化。获得初始资金 100 &lt;span class=&quot;gold&quot;&gt;金币&lt;/span&gt;。&lt;/div&gt;
+
+[[进入小镇-&gt;小镇/广场]]</tw-passagedata><tw-passagedata pid="5" name="战斗/结算" tags="" position="0,0" size="100,100"># 战斗胜利！
+
+{% py:
+if &quot;exp&quot; in p and &quot;gold&quot; in p:
+    exp_gain = p[&quot;exp&quot;]
+    gold_gain = p[&quot;gold&quot;]
+    
+    g[&quot;exp&quot;] += exp_gain
+    g[&quot;gold&quot;] += gold_gain
+    g[&quot;monster_kills&quot;] += 1
+    
+    print(f'&lt;div class=&quot;system-msg&quot;&gt;经过一番苦战，你获得了 &lt;span class=&quot;highlight&quot;&gt;{exp_gain}&lt;/span&gt; 点经验！&lt;/div&gt;')
+    print(f'&lt;div class=&quot;system-msg&quot;&gt;获得了 &lt;span class=&quot;gold&quot;&gt;{gold_gain}&lt;/span&gt; 枚金币！&lt;/div&gt;')
+    
+    # 检查升级
+    if g[&quot;exp&quot;] &gt;= g[&quot;exp_needed&quot;]:
+        g[&quot;level&quot;] += 1
+        g[&quot;max_hp&quot;] += 20
+        g[&quot;hp&quot;] = g[&quot;max_hp&quot;] 
+        g[&quot;atk&quot;] += 5
+        g[&quot;exp&quot;] -= g[&quot;exp_needed&quot;]
+        g[&quot;exp_needed&quot;] = int(g[&quot;exp_needed&quot;] * 1.5)
+        
+        print(f'&lt;hr&gt;&lt;h3 class=&quot;highlight&quot;&gt;✨ 突破极限！当前等级 Lv.{g[&quot;level&quot;]} ✨&lt;/h3&gt;')
+        print(f'&lt;p&gt;最大 HP 提升至 {g[&quot;max_hp&quot;]}&lt;/p&gt;')
+        print(f'&lt;p&gt;攻击力提升至 {g[&quot;atk&quot;]}&lt;/p&gt;')
+        print('&lt;p class=&quot;system-msg&quot;&gt;活力涌动，HP 被完全大回满了！&lt;/p&gt;')
+
+%}
+
+---
+[[返回幽暗森林继续探索-&gt;野外/幽暗森林]]&lt;br&gt;
+[[带着战利品返回城镇-&gt;小镇/广场]]</tw-passagedata><tw-passagedata pid="6" name="战斗/进行中" tags="" position="0,0" size="100,100"># 战斗中
+
+{% py:
+import random
+
+# 初始化或继承战斗对象
+enemy = g.get(&quot;current_enemy&quot;, None)
+
+if not enemy:
+    print('没有检测到敌人的气息。')
+    print('[[返回小镇广场-&gt;小镇/广场]]')
+else:
+    # 战斗逻辑处理
+    msg = &quot;&quot;
+    # 若接收到玩家行动参数
+    if &quot;action&quot; in p:
+        action = p[&quot;action&quot;]
+        if action == &quot;attack&quot;:
+            dmg = g[&quot;atk&quot;] + random.randint(-2, 2)
+            if dmg &lt; 1: dmg = 1
+            enemy[&quot;hp&quot;] -= dmg
+            msg += f&quot;你发起攻击，对 {enemy['name']} 造成了 &lt;span class='highlight'&gt;{dmg}&lt;/span&gt; 点伤害！&lt;br&gt;&quot;
+            
+        elif action == &quot;heavy&quot;:
+            if random.random() &gt; 0.5:
+                dmg = (g[&quot;atk&quot;] * 2) + random.randint(-5, 5)
+                if dmg &lt; 2: dmg = 2
+                enemy[&quot;hp&quot;] -= dmg
+                msg += f&quot;你奋力一击！！对 {enemy['name']} 造成了 &lt;span class='highlight'&gt;{dmg}&lt;/span&gt; 点巨大伤害！&lt;br&gt;&quot;
+            else:
+                msg += &quot;你也太用力了，破绽百出，攻击落空！&lt;br&gt;&quot;
+
+        elif action == &quot;flee&quot;:
+            if enemy.get(&quot;is_boss&quot;, False):
+                msg += &quot;在魔王的威压面前，你的双腿无法动弹，无法逃跑！&lt;br&gt;&quot;
+            else:
+                if random.random() &gt; 0.4:
+                    print('&lt;script&gt;setTimeout(() =&gt; alert(&quot;成功逃离战斗！&quot;), 50)&lt;/script&gt;')
+                    print('[[逃跑成功，点击返回-&gt;野外/幽暗森林]]')
+                    enemy[&quot;hp&quot;] = -999 # 终结状态标志
+                else:
+                    msg += &quot;逃跑失败，被敌人拦住了去路！&lt;br&gt;&quot;
+
+        # 怪物反击
+        if enemy[&quot;hp&quot;] &gt; 0 and (action != &quot;flee&quot; or msg.startswith(&quot;逃跑失败&quot;)):
+             enemy_dmg = enemy[&quot;atk&quot;] + random.randint(-1, 2)
+             if enemy_dmg &lt; 1: enemy_dmg = 1
+             g[&quot;hp&quot;] -= enemy_dmg
+             msg += f&quot;&lt;span class='danger'&gt;{enemy['name']} 发起反击，对你造成了 {enemy_dmg} 点伤害！&lt;/span&gt;&lt;br&gt;&quot;
+
+    # 死亡判断
+    if g[&quot;hp&quot;] &lt;= 0:
+        g[&quot;hp&quot;] = 0
+        enemy[&quot;hp&quot;] = 0 
+        print('&lt;h2 class=&quot;danger&quot;&gt;你倒下了... 世界陷入了永恒的黑暗。&lt;/h2&gt;')
+        print('[[重新开始世界线-&gt;开始]]')
+    elif enemy[&quot;hp&quot;] &lt;= 0 and enemy.get(&quot;hp&quot;, 0) != -999: # 判定击杀
+        g[&quot;current_enemy&quot;] = None # 清除怪物
+        if enemy.get(&quot;is_boss&quot;, False):
+             print('&lt;script&gt;Freebird.goto(&quot;结局/魔王伏诛&quot;)&lt;/script&gt;')
+             print('[[继续-&gt;结局/魔王伏诛]]')
+        else:
+             print(f'&lt;script&gt;Freebird.goto(&quot;战斗/结算&quot;, {{ exp: {enemy[&quot;exp&quot;]}, gold: {enemy[&quot;gold&quot;]} }})&lt;/script&gt;')
+             print(f'[[战斗胜利，正在结算... (若未跳转请点击这里)-&gt;战斗/结算|{{ exp: {enemy[&quot;exp&quot;]}, gold: {enemy[&quot;gold&quot;]} }}]]')
+    
+    # 存活时渲染UI
+    if g[&quot;hp&quot;] &gt; 0 and enemy.get(&quot;hp&quot;, 0) &gt; 0:
+        if msg:
+            print(f'&lt;div class=&quot;system-msg&quot; style=&quot;padding:10px; background:#222; border-left:4px solid #fff;&quot;&gt;{msg}&lt;/div&gt;')
+        
+        hp_pct = (g[&quot;hp&quot;] / g[&quot;max_hp&quot;]) * 100
+        enemy_hp_pct = (enemy[&quot;hp&quot;] / enemy[&quot;max_hp&quot;]) * 100
+        
+        print(f'''
+        &lt;div class=&quot;combat-panel&quot;&gt;
+            &lt;div class=&quot;combat-character player-hp&quot;&gt;
+                &lt;h3&gt;{g[&quot;playerName&quot;]} (Lv.{g[&quot;level&quot;]})&lt;/h3&gt;
+                &lt;div class=&quot;hp-bar-container&quot;&gt;&lt;div class=&quot;hp-bar-fill&quot; style=&quot;width: {max(0, hp_pct)}%;&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+                &lt;p&gt;HP: {max(0, g[&quot;hp&quot;])} / {g[&quot;max_hp&quot;]}&lt;/p&gt;
+                &lt;p&gt;ATK: {g[&quot;atk&quot;]}&lt;/p&gt;
+            &lt;/div&gt;
+            
+            &lt;div class=&quot;combat-character&quot;&gt;
+                &lt;h3&gt;{enemy[&quot;name&quot;]}&lt;/h3&gt;
+                &lt;div class=&quot;hp-bar-container&quot;&gt;&lt;div class=&quot;hp-bar-fill&quot; style=&quot;width: {max(0, enemy_hp_pct)}%;&quot;&gt;&lt;/div&gt;&lt;/div&gt;
+                &lt;p&gt;HP: {max(0, enemy[&quot;hp&quot;])} / {enemy[&quot;max_hp&quot;]}&lt;/p&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        ''')
+        
+        print('&lt;h3&gt;【行动指令】&lt;/h3&gt;')
+        print('[[⚔️ 普通攻击-&gt;战斗/进行中|{ action: &quot;attack&quot; }]]&lt;br&gt;')
+        print('[[💥 舍身重击 (50%命中 / 两倍伤害)-&gt;战斗/进行中|{ action: &quot;heavy&quot; }]]&lt;br&gt;')
+        if not enemy.get(&quot;is_boss&quot;, False):
+            print('[[🏃 尝试逃跑 (约60%几率)-&gt;战斗/进行中|{ action: &quot;flee&quot; }]]')
+%}</tw-passagedata><tw-passagedata pid="7" name="结局/魔王伏诛" tags="" position="0,0" size="100,100"># 最终结算
+
+魔王庞大的身躯轰然倒塌，化为了漫天的黑灰。
+笼罩世界的阴云终于散去，一丝阳光透了下来。
+
+{% py:
+print('&lt;hr&gt;')
+if g[&quot;boss_weakness&quot;]:
+    print('&lt;h2 class=&quot;highlight&quot;&gt;【完美结局：黎明的光辉】&lt;/h2&gt;')
+    print('&lt;p&gt;你利用酒馆老板给出的关键情报，精准击碎了魔王的核心。&lt;/p&gt;')
+    print('&lt;p&gt;真正的和平降临了。你不仅拯救了世界，也彻底断绝了黑暗重生的可能。&lt;/p&gt;')
+else:
+    print('&lt;h2&gt;【普通结局：惨胜如败】&lt;/h2&gt;')
+    print('&lt;p&gt;你靠着不屈的意志与魔王死斗至最后一刻，最终将其硬生生砍回了深渊。&lt;/p&gt;')
+    print('&lt;p&gt;但魔王的核心并未被毁去，百年之后，黑暗或许还会卷土重来...&lt;/p&gt;')
+
+# 统计彩蛋
+if g[&quot;gold&quot;] &gt; 1000 and g[&quot;tavern_friendship&quot;] &gt;= 75:
+    print('&lt;hr&gt;&lt;h3&gt;【隐藏彩蛋：酒馆风云】&lt;/h3&gt;')
+    print('&lt;p&gt;退役后，你带着海量的财富回到了小镇。&lt;/p&gt;')
+    print('&lt;p&gt;你直接买下了独眼猫酒馆，和老板合伙成立了世界第一商业与情报网络，过上了奢华的枯燥生活...&lt;/p&gt;')
+
+%}
+
+&lt;div style=&quot;background: #222; padding: 15px; border-radius: 5px; margin-top: 20px;&quot;&gt;
+&lt;h3&gt;勇者的最终生平：&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;最终等级: Lv.{{ g.level }}&lt;/li&gt;
+  &lt;li&gt;最终攻击力: {{ g.atk }}&lt;/li&gt;
+  &lt;li&gt;讨伐野兽总数: {{ g.monster_kills }}&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+
+&lt;h2 style=&quot;text-align: center; margin-top: 50px;&quot;&gt;游戏通关！感谢您的游玩！&lt;/h2&gt;
+
+[[时光倒流，重启世界线-&gt;开始]]</tw-passagedata><tw-passagedata pid="8" name="野外/幽暗森林" tags="" position="0,0" size="100,100"># 幽暗森林
+
+四周弥漫着刺骨的雾气，树木像鬼怪一般扭曲。时不时传来野兽的嘶吼。
+
+[[继续深入探索-&gt;野外/幽暗森林|{ action: &quot;explore&quot; }]]&lt;br&gt;
+[[返回小镇广场-&gt;小镇/广场]]
+
+{% py:
+import random
+
+if &quot;action&quot; in p and p[&quot;action&quot;] == &quot;explore&quot;:
+    roll = random.randint(1, 100)
+    if roll &lt;= 20:
+        # 20% 概率找到金币
+        gold_found = random.randint(5, 20)
+        g[&quot;gold&quot;] += gold_found
+        print(f'&lt;div class=&quot;system-msg&quot;&gt;你在树丛里发现了一个旧钱袋，获得了 &lt;span class=&quot;gold&quot;&gt;{gold_found}&lt;/span&gt; 金币！&lt;/div&gt;')
+    else:
+        # 80% 遭遇战斗
+        # 随机生成怪物属性
+        is_hard = random.randint(1, 10) &gt; 7
+        if is_hard:
+            monster = {&quot;name&quot;: &quot;狂暴哥布林&quot;, &quot;hp&quot;: 40 + g[&quot;level&quot;] * 10, &quot;max_hp&quot;: 40 + g[&quot;level&quot;] * 10, &quot;atk&quot;: 10 + g[&quot;level&quot;] * 2, &quot;exp&quot;: 25, &quot;gold&quot;: 30, &quot;is_boss&quot;: False}
+        else:
+            monster = {&quot;name&quot;: &quot;粘液史莱姆&quot;, &quot;hp&quot;: 20 + g[&quot;level&quot;] * 5, &quot;max_hp&quot;: 20 + g[&quot;level&quot;] * 5, &quot;atk&quot;: 5 + g[&quot;level&quot;], &quot;exp&quot;: 10, &quot;gold&quot;: 10, &quot;is_boss&quot;: False}
+        
+        g[&quot;current_enemy&quot;] = monster
+        
+        print(f'&lt;hr&gt;&lt;div class=&quot;danger&quot;&gt;前方突然跳出了一只 {monster[&quot;name&quot;]}！准备战斗！&lt;/div&gt;')
+        print('[[⚔️ 点击进入回合制战斗-&gt;战斗/进行中|{ init: true }]]')
+%}</tw-passagedata><tw-passagedata pid="9" name="魔王城/王座" tags="" position="0,0" size="100,100"># 魔王城深处
+
+空气黏稠得令人窒息，在巨大的白骨王座上，端坐着黑暗的根源。
+
+“又是一只不知死活的虫子...” 魔王缓缓站起身，大殿剧烈摇晃。
+
+{% py:
+# 初始化魔王属性
+boss_hp = 1000
+boss_atk = 35
+
+if g[&quot;boss_weakness&quot;]:
+    # 获知弱点，魔王大幅削弱
+    boss_hp = 300
+    boss_atk = 15
+    print('&lt;div class=&quot;system-msg highlight&quot;&gt;【弱点洞悉】你盯着魔王胸口的血色红宝石，它的力量来源在那里！&lt;/div&gt;')
+else:
+    print('&lt;div class=&quot;danger&quot;&gt;魔王散发着不可战胜的恐怖威压... 没有找到它的弱点，硬拼恐怕九死一生。&lt;/div&gt;')
+
+boss = {&quot;name&quot;: &quot;灭世魔王&quot;, &quot;hp&quot;: boss_hp, &quot;max_hp&quot;: boss_hp, &quot;atk&quot;: boss_atk, &quot;exp&quot;: 9999, &quot;gold&quot;: 9999, &quot;is_boss&quot;: True}
+g[&quot;current_enemy&quot;] = boss
+%}
+
+[[⚔️ 只能拼了！进入战斗！-&gt;战斗/进行中|{ init: true }]]</tw-passagedata></tw-storydata>
+<script>
+(async function() {
+const storyEl = document.getElementById('story');
+let _pyReady = false;
+async function loadPythonEnv() {
+if (_pyReady) return;
+if (window._pyLoading) return window._pyLoading;
+window._pyLoading = new Promise((resolve, reject) => {
+const s1 = document.createElement('script');
+s1.src = 'https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js';
+s1.onload = () => {
+const s2 = document.createElement('script');
+s2.src = 'https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js';
+s2.onload = () => {
+try {
+Sk.configure({
+output: function(text) { window.printBuf.push(text); },
+read: function(x) {
+if (Sk.builtinFiles && Sk.builtinFiles["files"][x] !== undefined)
+return Sk.builtinFiles["files"][x];
+throw "File not found: '" + x + "'";
+},
+__future__: Sk.python3
+});
+_pyReady = true;
+resolve();
+} catch(e) { window._pyError = e.toString(); reject(e); }
+};
+s2.onerror = () => { window._pyError = 'stdlib 加载失败'; reject(new Error('stdlib load failed')); };
+document.head.appendChild(s2);
+};
+s1.onerror = () => { window._pyError = '加载失败'; reject(new Error('Skulpt load failed')); };
+document.head.appendChild(s1);
+});
+return window._pyLoading;
+}
+// 1. 提取核心数据
+const dataEl = document.querySelector('tw-storydata') || { getAttribute:()=>'Start', children:[] };
+let startNodeId = dataEl.getAttribute('startnode') || "1";
+const passages = {};
+const passageElements = document.querySelectorAll('tw-passagedata');
+let startPassageName = "";
+passageElements.forEach(el => {
+const name = el.getAttribute('name');
+const text = el.innerText || el.textContent;
+const pid = el.getAttribute('pid');
+passages[name] = text;
+if (pid === startNodeId) startPassageName = name;
+});
+if (!startPassageName && passageElements.length > 0) {
+startPassageName = passageElements[0].getAttribute('name');
+}
+// 2. 引擎状态配置
+window.g = window.g || {};
+let g = window.g;
+const userScripts = document.querySelectorAll('script[type="text/twine-javascript"]');
+userScripts.forEach(script => {
+try {
+new Function('g', script.textContent)(g);
+} catch(e) {
+console.error("执行初始脚本失败:", e);
+}
+});
+const userStyles = document.querySelectorAll('style[type="text/twine-css"]');
+userStyles.forEach(style => {
+const newStyle = document.createElement('style');
+newStyle.textContent = style.textContent;
+document.head.appendChild(newStyle);
+});
+let l = {};
+let p = {};
+let historySeq = [];
+let visitCounts = {};
+let currentPassage = "";
+let ifid = dataEl.getAttribute('ifid') || "default_ifid";
+window.printBuf = [];
+window.fbPrint = function(...args) { window.printBuf.push(args.join(" ")); };
+function execJS(code) {
+window.printBuf = [];
+try {
+const fn = new Function('g', 'l', 'p', 'print', 'Freebird', code);
+fn(g, l, p, window.fbPrint, window.Freebird);
+} catch(e) {
+window.printBuf.push(`<span style="color:red">[JS执行错误: ${e.message}]</span>`);
+}
+return window.printBuf.join("");
+}
+function execPython(code) {
+if (!_pyReady) return `<span style="color:red">[Python 环境未就绪: ${window._pyError || '未知'}]</span>`;
+window.printBuf = [];
+try {
+Sk.configure({
+output: function(text) { window.printBuf.push(text); },
+read: function(x) {
+if (Sk.builtinFiles && Sk.builtinFiles["files"][x] !== undefined)
+return Sk.builtinFiles["files"][x];
+throw "File not found: '" + x + "'";
+},
+__future__: Sk.python3
+});
+// Inject g/l/p as Python builtins via FFI
+Sk.builtins.g = Sk.ffi.remapToPy(g);
+Sk.builtins.l = Sk.ffi.remapToPy(l);
+Sk.builtins.p = Sk.ffi.remapToPy(p);
+Sk.importMainWithBody("<stdin>", false, code, false);
+// Read back modified variables
+try {
+const newG = Sk.ffi.remapToJs(Sk.builtins.g);
+Object.keys(g).forEach(k => delete g[k]);
+Object.assign(g, newG);
+} catch(e) {}
+try {
+const newL = Sk.ffi.remapToJs(Sk.builtins.l);
+Object.keys(l).forEach(k => delete l[k]);
+Object.assign(l, newL);
+} catch(e) {}
+} catch(e) {
+window.printBuf.push(`<span style="color:red">[Python执行错误: ${e.toString()}]</span>`);
+}
+return window.printBuf.join("");
+}
+async function renderTemplate(text) {
+if (/py[:\s]/i.test(text)) {
+try { await loadPythonEnv(); } catch(e) { console.error(e); }
+}
+// 第一阶段：提取 {% %} 和 {{ }} 进行逻辑置换
+let processed = text.replace(/{%([\s\S]*?)%}/g, (match, code) => {
+code = code.trim();
+let pyMatch = code.match(/^py[:\s]+([\s\S]*)$/i);
+if (pyMatch) {
+return execPython(pyMatch[1]);
+} else {
+return execJS(code);
+}
+});
+processed = processed.replace(/{{([\s\S]*?)}}/g, (match, code) => {
+code = code.trim();
+let pyMatch = code.match(/^py[:\s]+([\s\S]*)$/i);
+if (pyMatch) {
+return execPython(`print(${pyMatch[1]})`);
+} else {
+return execJS(`print(${code})`);
+}
+});
+// 第二阶段：变量展开 $var$ 或 #var#
+processed = processed.replace(/([$#])([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\1/g, (match, sep, varPath) => {
+let context = "g";
+let path = varPath;
+if (varPath.startsWith("l.")) { context = "l"; path = varPath.substring(2); }
+else if (varPath.startsWith("p.")) { context = "p"; path = varPath.substring(2); }
+else if (varPath.startsWith("g.")) { context = "g"; path = varPath.substring(2); }
+else { context = "g"; path = varPath; }
+let obj = context === "g" ? g : (context === "l" ? l : p);
+let val = path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : undefined), obj);
+return val !== undefined ? val : match;
+});
+// 第三阶段：解析链接 [[link]]
+processed = processed.replace(/\[\[(.*?)\]\]/g, (match, inner) => {
+let target = inner;
+let display = inner;
+let vars = null;
+let pipeIndex = inner.lastIndexOf("|");
+if (pipeIndex > -1) {
+try {
+let varStr = inner.substring(pipeIndex + 1).trim();
+if (varStr.startsWith("{")) {
+vars = varStr; 
+}
+inner = inner.substring(0, pipeIndex);
+} catch(e) {}
+}
+let rightArrow = inner.indexOf("->");
+let leftArrow = inner.indexOf("<-");
+if (rightArrow > -1) {
+display = inner.substring(0, rightArrow).trim();
+target = inner.substring(rightArrow + 2).trim();
+} else if (leftArrow > -1) {
+target = inner.substring(0, leftArrow).trim();
+display = inner.substring(leftArrow + 2).trim();
+} else {
+target = inner.trim();
+display = inner.trim();
+}
+let varsAttr = vars ? ` data-vars="${encodeURIComponent(vars)}"` : '';
+let safeTarget = target.replace(/"/g, '&quot;');
+return `<a class="fb-link" data-target="${safeTarget}"${varsAttr}>${display}</a>`;
+});
+// 第四阶段：Markdown 解析
+processed = (function(text) {
+var lines = text.split('\n'), out = '', para = [], inList = false;
+function flush() {
+if (para.length > 0) {
+out += '<p>' + inl(para.join('<br>')) + '</p>\n';
+para = [];
+}
+}
+function inl(s) {
+return s
+.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+.replace(/__(.+?)__/g, '<strong>$1</strong>')
+.replace(/\*(.+?)\*/g, '<em>$1</em>')
+.replace(/~~(.+?)~~/g, '<del>$1</del>')
+.replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+for (var i = 0; i < lines.length; i++) {
+var line = lines[i], t = line.trim();
+if (t === '') {
+if (inList) { out += '</ul>\n'; inList = false; }
+flush(); continue;
+}
+var hm = t.match(/^(#{1,6})\s+(.*)$/);
+if (hm) {
+flush();
+if (inList) { out += '</ul>\n'; inList = false; }
+out += '<h' + hm[1].length + '>' + inl(hm[2]) + '</h' + hm[1].length + '>\n';
+continue;
+}
+if (/^[-*_]{3,}\s*$/.test(t)) {
+flush();
+if (inList) { out += '</ul>\n'; inList = false; }
+out += '<hr>\n'; continue;
+}
+var lm = t.match(/^[-*+]\s+(.*)$/);
+if (lm) {
+flush();
+if (!inList) { out += '<ul>\n'; inList = true; }
+out += '<li>' + inl(lm[1]) + '</li>\n';
+continue;
+}
+if (/^<\/?(div|section|table|thead|tbody|tr|td|th|header|footer|ul|ol|h[1-6]|p|hr|blockquote|script|style|form|details|aside|nav|article)/i.test(t)) {
+flush();
+if (inList) { out += '</ul>\n'; inList = false; }
+out += line + '\n'; continue;
+}
+para.push(line);
+}
+if (inList) out += '</ul>\n';
+flush();
+return out;
+})(processed);
+return processed;
+}
+async function displayPassage(name, passVars = {}) {
+let text = passages[name];
+if (text === undefined) {
+text = `抱歉，找不到场景: ${name}`;
+}
+currentPassage = name;
+p = passVars;
+visitCounts[name] = (visitCounts[name] || 0) + 1;
+const needsPyWait = !_pyReady && /py[:\s]/i.test(text);
+if (needsPyWait) {
+storyEl.innerHTML = '<p style="color:#888;text-align:center;margin-top:3em">⏳ 正在加载 Python 运行环境…</p>';
+} else {
+storyEl.classList.add('loading');
+}
+let html = await renderTemplate(text);
+storyEl.innerHTML = html;
+storyEl.classList.remove('loading');
+document.querySelectorAll('.fb-link').forEach(a => {
+a.addEventListener('click', (e) => {
+let target = a.getAttribute('data-target');
+let vstr = a.getAttribute('data-vars');
+let args = {};
+if (vstr) {
+try {
+args = new Function('return ' + decodeURIComponent(vstr))() || {};
+} catch(err) {} 
+}
+window.Freebird.goto(target, args);
+});
+});
+}
+window.Freebird = {
+goto: function(name, passVars = {}) {
+if (currentPassage) historySeq.push(currentPassage);
+l = {};
+displayPassage(name, passVars);
+},
+back: function() {
+if (historySeq.length > 0) {
+let prev = historySeq.pop();
+l = {};
+displayPassage(prev);
+}
+},
+restart: function() {
+historySeq = [];
+g = {};
+window.g = g;
+l = {};
+p = {};
+visitCounts = {};
+currentPassage = "";
+const userScripts = document.querySelectorAll('script[type="text/twine-javascript"]');
+userScripts.forEach(script => { try { new Function('g', script.textContent)(g); } catch(e) {} });
+displayPassage(startPassageName);
+},
+save: function(slot) {
+let state = { g, historySeq, currentPassage, visitCounts, date: Date.now() };
+localStorage.setItem("fb_" + ifid + "_" + slot, JSON.stringify(state));
+},
+load: function(slot) {
+let data = localStorage.getItem("fb_" + ifid + "_" + slot);
+if (data) {
+try {
+let state = JSON.parse(data);
+g = state.g;
+window.g = g;
+historySeq = state.historySeq;
+visitCounts = state.visitCounts || {};
+l = {}; p = {};
+displayPassage(state.currentPassage);
+} catch(e) {}
+}
+},
+listSaves: function() {
+let prefix = "fb_" + ifid + "_";
+let saves = [];
+for (let i = 0; i < localStorage.length; i++) {
+let key = localStorage.key(i);
+if (key && key.startsWith(prefix)) {
+try {
+let data = JSON.parse(localStorage.getItem(key));
+saves.push({ slot: key.substring(prefix.length), date: data.date, passage: data.currentPassage });
+} catch(e) {}
+}
+}
+return saves;
+},
+deleteSave: function(slot) {
+localStorage.removeItem("fb_" + ifid + "_" + slot);
+},
+visited: function(name) { return (visitCounts[name] || 0) > 0; },
+visitCount: function(name) { return visitCounts[name] || 0; },
+get passage() { return currentPassage; },
+get passages() { return Object.keys(passages); },
+get passageList() { return Object.keys(passages); }
+};
+// 智能预加载：仅当任意 passage 含 Python 代码时预加载 Skulpt
+const _hasPython = Object.values(passages).some(t => /py[:\s]/i.test(t));
+if (_hasPython) loadPythonEnv().catch(e => console.warn(e));
+// 启动
+if (startPassageName) {
+displayPassage(startPassageName);
+} else {
+storyEl.innerHTML = "<h1>暂无内容</h1>";
+}
+})();
+</script>
+</body>
+</html>

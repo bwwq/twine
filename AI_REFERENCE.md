@@ -119,14 +119,14 @@ Freebird.passageList                 // 所有场景名数组
 
 ```css
 :root {
-  --fb-bg: #1a1a2e;                  /* 背景色 */
-  --fb-color: #eee;                  /* 文字色 */
-  --fb-font-family: 'LXGW WenKai';  /* 字体 */
-  --fb-font-size: 18px;              /* 字号 */
-  --fb-line-height: 1.8;             /* 行高 */
-  --fb-max-width: 700px;             /* 最大宽度 */
-  --fb-link-color: #4e7fff;          /* 链接色 */
-  --fb-padding: 2rem;                /* 内边距 */
+  --fb-bg: #000000;                  /* 背景色 */
+  --fb-color: #ffffff;               /* 文字色 */
+  --fb-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; /* 字体 */
+  --fb-font-size: 24px;              /* 字号 */
+  --fb-line-height: 1.5;             /* 行高 */
+  --fb-max-width: 800px;             /* 最大宽度 */
+  --fb-link-color: #4169E1;          /* 链接色 */
+  --fb-link-hover: #00bfff;          /* 悬停链接色 */
 }
 ```
 
@@ -230,3 +230,70 @@ node freebird-cli.js twee [目录]             # 导出 Twee 格式
 - `engine.html` 是运行时核心，修改后需执行 `node build-format.js` 同步到 `format.js`
 - 开发模式下 Vite 的 `freebird-sync` 插件会在 `npm run start` 时自动执行同步
 - **不要手动编辑 `format.js`**，它由 `build-format.js` 自动生成
+
+---
+
+## AI 生成规范
+
+### 输出目录
+
+AI 生成的故事项目统一放在 `VIBEstory/` 子目录下，**支持多项目**。每个子目录是一个独立的故事项目。
+
+**Twine 编辑器集成**：运行 `npm run start` 后，VIBEstory 下的所有项目会**自动出现**在 Twine 故事列表中。在编辑器中的修改会实时写回文件。
+
+结构示例：
+
+```
+VIBEstory/
+├── 屠魔勇士/                # 项目 A
+│   ├── freebird.json
+│   ├── global.css
+│   ├── 开始.md
+│   ├── 小镇/
+│   │   ├── 广场.md
+│   │   └── 酒馆.md
+│   └── dist/
+│       └── story.html
+├── 恋爱模拟器/              # 项目 B
+│   ├── freebird.json
+│   └── ...
+```
+
+构建命令：
+```bash
+node public/story-formats/freebird-1.0.0/freebird-cli.js build VIBEstory/屠魔勇士
+```
+
+### Markdown 支持
+
+引擎内置轻量 Markdown 解析器，passage 文件（`.md`）支持以下语法：
+
+| 语法 | 效果 |
+|------|------|
+| `# 标题` ~ `###### 标题` | 一级～六级标题 |
+| `**粗体**` 或 `__粗体__` | **粗体** |
+| `*斜体*` | *斜体* |
+| `~~删除线~~` | ~~删除线~~ |
+| ``  `行内代码`  `` | 行内代码 |
+| `---` 或 `***` | 水平分割线 |
+| `- 列表项` | 无序列表 |
+| 空行 | 段落分隔 |
+| 原生 HTML 标签 | 直接透传渲染 |
+
+### 样式规范
+
+> **禁止**覆盖引擎默认主题变量（`--fb-bg`、`--fb-color`、`--fb-font-family` 等）。
+> 引擎自带的深色主题、字体和链接样式已经足够美观且统一。
+
+`global.css` 中只放**游戏专用**的 CSS class，例如：
+
+```css
+/* ✅ 正确：只定义游戏专用 class */
+.combat-panel { ... }
+.hp-bar-fill { ... }
+.gold { color: #fbbf24; }
+
+/* ❌ 错误：覆盖引擎默认变量 */
+:root { --fb-bg: #1a1a1a; }
+body { font-family: monospace; }
+```

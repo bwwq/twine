@@ -87,9 +87,12 @@ function build(projectDir, outputFile) {
 	}
 
 	let source = sourceMatch[1]
-		.replace(/\\n/g, '\n')
-		.replace(/\\"/g, '"')
-		.replace(/\\\\/g, '\\');
+		.replace(/\\([\\"n])/g, function(m, ch) {
+			if (ch === 'n') return '\n';
+			if (ch === '"') return '"';
+			if (ch === '\\') return '\\';
+			return m;
+		});
 
 	let output = source
 		.replace(/\{\{STORY_NAME\}\}/g, escapeHtml(config.name))

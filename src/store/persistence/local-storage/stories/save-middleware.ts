@@ -15,6 +15,19 @@ import {
 	saveStory
 } from './save';
 
+
+// VIBEstory: save to filesystem via dev server API
+function vibeSync(state: StoriesState, storyId: string) {
+	const story = storyWithId(state, storyId);
+	if (!story._vibeProject) return false;
+	fetch('/__vibe/save', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify(story)
+	}).catch(e => console.warn('VIBEstory save failed:', e));
+	return true;
+}
+
 let lastState: StoriesState;
 
 /**
@@ -31,6 +44,7 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 			break;
 
 		case 'createPassage': {
+			if (vibeSync(state, action.storyId)) break;
 			if (!action.props.name) {
 				throw new Error('Passage was created but with no name specified');
 			}
@@ -46,6 +60,7 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 		}
 
 		case 'createPassages': {
+			if (vibeSync(state, action.storyId)) break;
 			const story = storyWithId(state, action.storyId);
 
 			doUpdateTransaction(transaction => {
@@ -65,6 +80,7 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 		}
 
 		case 'createStory': {
+			if (action.props._vibeProject) break; // VIBEstory: skip localStorage for vibe stories
 			if (!action.props.name) {
 				throw new Error('Story was created but with no name specified');
 			}
@@ -82,6 +98,7 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 		}
 
 		case 'deletePassage': {
+			if (vibeSync(state, action.storyId)) break;
 			const story = storyWithId(state, action.storyId);
 
 			// We can't dig up the passage in question right now, because
@@ -96,6 +113,7 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 		}
 
 		case 'deletePassages': {
+			if (vibeSync(state, action.storyId)) break;
 			const story = storyWithId(state, action.storyId);
 
 			// See above comment about passages.
@@ -111,6 +129,8 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 		}
 
 		case 'deleteStory': {
+			const delStory = storyWithId(lastState, action.storyId);
+			if (delStory._vibeProject) break; // VIBEstory: don't delete from localStorage
 			// The story will be gone from state by the time we're called, so we
 			// need a cached copy.
 
@@ -142,6 +162,7 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 			break;
 
 		case 'updatePassages': {
+			if (vibeSync(state, action.storyId)) break;
 			const story = storyWithId(state, action.storyId);
 
 			doUpdateTransaction(transaction => {
@@ -163,6 +184,7 @@ export function saveMiddleware(state: StoriesState, action: StoriesAction) {
 		}
 
 		case 'updateStory': {
+			if (vibeSync(state, action.storyId)) break;
 			const story = storyWithId(state, action.storyId);
 
 			doUpdateTransaction(transaction => {

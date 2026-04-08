@@ -110,6 +110,10 @@ export interface Story {
 	 */
 	tagColors: TagColors;
 	/**
+	 * VIBEstory project dir name. If set, saves go to filesystem.
+	 */
+	_vibeProject?: string;
+	/**
 	 * Zoom level the story is displayed at.
 	 */
 	zoom: number;

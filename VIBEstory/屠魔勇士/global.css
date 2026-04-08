@@ -1,0 +1,54 @@
+/* ===== 游戏专用样式（不覆盖引擎默认主题） ===== */
+
+/* 战斗面板 */
+.combat-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+}
+
+.combat-character {
+  flex: 1;
+}
+
+.combat-character h3 {
+  margin-top: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  padding-bottom: 5px;
+}
+
+/* 血条 */
+.hp-bar-container {
+  width: 100%;
+  height: 18px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.hp-bar-fill {
+  height: 100%;
+  background: #e74c3c;
+  border-radius: 9px;
+  transition: width 0.3s ease;
+}
+
+.player-hp .hp-bar-fill {
+  background: #2ecc71;
+}
+
+/* 文字强调 */
+.highlight { color: #e879f9; font-weight: bold; }
+.gold { color: #fbbf24; font-weight: bold; }
+.danger { color: #ef4444; font-weight: bold; }
+.system-msg {
+  color: #34d399;
+  font-style: italic;
+  margin: 8px 0;
+}

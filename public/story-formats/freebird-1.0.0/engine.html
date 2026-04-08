@@ -4,9 +4,34 @@
   <meta charset="utf-8">
   <title>{{STORY_NAME}}</title>
   <style>
-    body { background: #222; color: #eee; font-family: sans-serif; margin: 2em auto; max-width: 800px; line-height: 1.6; }
-    a { color: #6ea8fe; text-decoration: none; cursor: pointer; }
-    a:hover { text-decoration: underline; }
+    :root {
+      --fb-bg: #000000;
+      --fb-color: #ffffff;
+      --fb-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --fb-font-size: 24px;
+      --fb-line-height: 1.5;
+      --fb-max-width: 800px;
+      --fb-link-color: #4169E1;
+      --fb-link-hover: #00bfff;
+    }
+    body { 
+      background: var(--fb-bg); 
+      color: var(--fb-color); 
+      font-family: var(--fb-font-family); 
+      font-size: var(--fb-font-size);
+      margin: 5% auto; 
+      max-width: var(--fb-max-width); 
+      line-height: var(--fb-line-height); 
+      padding: 0 5%;
+    }
+    a { 
+      color: var(--fb-link-color); 
+      text-decoration: none; 
+      font-weight: bold;
+      cursor: pointer; 
+      transition: color 0.2s;
+    }
+    a:hover { color: var(--fb-link-hover); }
     #story { transition: opacity 0.3s ease; }
     #story.loading { opacity: 0; }
     tw-storydata { display: none; }
@@ -151,7 +176,7 @@
       }
 
       async function renderTemplate(text) {
-        if (/py[:\s\n\r]/i.test(text)) {
+        if (/py[:\s]/i.test(text)) {
            try { await loadPythonEnv(); } catch(e) { console.error(e); }
         }
 
@@ -225,25 +250,72 @@
            return `<a class="fb-link" data-target="${safeTarget}"${varsAttr}>${display}</a>`;
         });
 
-        // 第四阶段：自动分段 (如果含块级 HTML 标签则不做)
-        if (!(/(<div|<section|<table|<header|<ul|<ol|<h[1-6]|<p|<hr|<blockquote)/i.test(processed))) {
-           processed = processed.split(/\n\s*\n/)
-             .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
-             .join('\n');
-        }
+        // 第四阶段：Markdown 解析
+        processed = (function(text) {
+          var lines = text.split('\n'), out = '', para = [], inList = false;
+          function flush() {
+            if (para.length > 0) {
+              out += '<p>' + inl(para.join('<br>')) + '</p>\n';
+              para = [];
+            }
+          }
+          function inl(s) {
+            return s
+              .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+              .replace(/__(.+?)__/g, '<strong>$1</strong>')
+              .replace(/\*(.+?)\*/g, '<em>$1</em>')
+              .replace(/~~(.+?)~~/g, '<del>$1</del>')
+              .replace(/`([^`]+)`/g, '<code>$1</code>');
+          }
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i], t = line.trim();
+            if (t === '') {
+              if (inList) { out += '</ul>\n'; inList = false; }
+              flush(); continue;
+            }
+            var hm = t.match(/^(#{1,6})\s+(.*)$/);
+            if (hm) {
+              flush();
+              if (inList) { out += '</ul>\n'; inList = false; }
+              out += '<h' + hm[1].length + '>' + inl(hm[2]) + '</h' + hm[1].length + '>\n';
+              continue;
+            }
+            if (/^[-*_]{3,}\s*$/.test(t)) {
+              flush();
+              if (inList) { out += '</ul>\n'; inList = false; }
+              out += '<hr>\n'; continue;
+            }
+            var lm = t.match(/^[-*+]\s+(.*)$/);
+            if (lm) {
+              flush();
+              if (!inList) { out += '<ul>\n'; inList = true; }
+              out += '<li>' + inl(lm[1]) + '</li>\n';
+              continue;
+            }
+            if (/^<\/?(div|section|table|thead|tbody|tr|td|th|header|footer|ul|ol|h[1-6]|p|hr|blockquote|script|style|form|details|aside|nav|article)/i.test(t)) {
+              flush();
+              if (inList) { out += '</ul>\n'; inList = false; }
+              out += line + '\n'; continue;
+            }
+            para.push(line);
+          }
+          if (inList) out += '</ul>\n';
+          flush();
+          return out;
+        })(processed);
 
         return processed;
       }
 
       async function displayPassage(name, passVars = {}) {
         let text = passages[name];
-        if (!text) {
+        if (text === undefined) {
            text = `抱歉，找不到场景: ${name}`;
         }
         currentPassage = name;
         p = passVars;
         visitCounts[name] = (visitCounts[name] || 0) + 1;
-        const needsPyWait = !_pyReady && /py[:\s\n\r]/i.test(text);
+        const needsPyWait = !_pyReady && /py[:\s]/i.test(text);
         if (needsPyWait) {
           storyEl.innerHTML = '<p style="color:#888;text-align:center;margin-top:3em">⏳ 正在加载 Python 运行环境…</p>';
         } else {
@@ -338,7 +410,7 @@
       };
 
       // 智能预加载：仅当任意 passage 含 Python 代码时预加载 Skulpt
-      const _hasPython = Object.values(passages).some(t => /py[:\s\n\r]/i.test(t));
+      const _hasPython = Object.values(passages).some(t => /py[:\s]/i.test(t));
       if (_hasPython) loadPythonEnv().catch(e => console.warn(e));
 
       // 启动

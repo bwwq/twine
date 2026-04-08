@@ -6,6 +6,7 @@ import checker from 'vite-plugin-checker';
 import {nodePolyfills} from 'vite-plugin-node-polyfills';
 import {VitePWA} from 'vite-plugin-pwa';
 import packageJson from './package.json';
+import {vibeServerPlugin} from './src/vibe-server-plugin';
 
 export default defineConfig({
 	base: './',
@@ -26,6 +27,7 @@ export default defineConfig({
 				execSync('node public/story-formats/freebird-1.0.0/build-format.js', {stdio: 'inherit'});
 			}
 		},
+		vibeServerPlugin(),
 		checker({
 			eslint: {lintCommand: 'eslint src'},
 			overlay: {

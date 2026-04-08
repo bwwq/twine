@@ -32,6 +32,20 @@ export const StateLoader: React.FC = ({children}) => {
 				const prefsState = await prefs.load();
 				const storiesState = await stories.load();
 
+				// VIBEstory: merge file-based projects from dev server
+				try {
+					const vibeRes = await fetch('/__vibe/stories');
+					if (vibeRes.ok) {
+						const vibeStories = await vibeRes.json();
+						for (const vs of vibeStories) {
+							vs.lastUpdate = new Date(vs.lastUpdate);
+							const idx = storiesState.findIndex(s => s._vibeProject === vs._vibeProject);
+							if (idx >= 0) storiesState[idx] = vs;
+							else storiesState.push(vs);
+						}
+					}
+				} catch (e) { console.warn('VIBEstory load skipped:', e); }
+
 				formatsDispatch({type: 'init', state: formatsState});
 				prefsDispatch({type: 'init', state: prefsState});
 				storiesDispatch({type: 'init', state: storiesState});
