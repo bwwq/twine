@@ -1,0 +1,501 @@
+# Freebird Story Format - 最终实施方案
+
+## 一、语法设计
+
+### 1.1 文本与 HTML
+
+passage 内容默认就是 HTML。纯文本自动以空行分段包裹 `<p>`。
+
+**智能模式切换**：如果 passage 含有任何块级 HTML 标签（`div`、`section`、`table`、`header` 等），则整段不做自动分段，完全按原始 HTML 处理。这就是"HTML 取代默认节点设置"。
+
+```html
+这是普通文本，自动变成 <p>。
+
+<div class="card">
+  <h3>角色卡片</h3>
+  <p>直接写 HTML，无需转义</p>
+</div>
+```
+
+---
+
+### 1.2 变量显示
+
+在普通文本中，两种分隔符**等价**，用哪个都行：
+
+```
+你有 $gold$ 个金币          →  显示 g.gold 的值
+你有 #gold# 个金币          →  同上
+
+局部变量: $l.bonus$  或  #l.bonus#
+传递变量: $p.quest$  或  #p.quest#
+```
+
+规则：
+- 裸名（`$gold$` / `#gold#`）→ 全局变量 `g.gold`
+- `l.` 前缀 → 局部变量
+- `p.` 前缀 → 传递变量
+
+---
+
+### 1.3 表达式输出（`{{ }}`）
+
+复杂表达式用 `{{ }}`，在模板中计算并输出结果：
+
+```
+// 默认 JS
+{{ g.gold + l.bonus * 2 }}
+{{ g.inventory.length }}
+{{ g.name.toUpperCase() }}
+{{ Math.floor(Math.random() * 6) + 1 }}
+
+// 声明为 Python（首部写 py:）
+{{ py: g["gold"] + l["bonus"] * 2 }}
+{{ py: len(g["inventory"]) }}
+{{ py: g["name"].upper() }}
+```
+
+---
+
+### 1.4 代码块（`{% %}`）
+
+> [!IMPORTANT]
+> 代码块是**完整自包含**的。所有逻辑（条件、循环）都在代码块内部完成，通过 `print()` 输出内容。**不使用交错包裹式语法**。
+
+#### JS 代码块（默认）
+
+```javascript
+// 单行赋值
+{% g.gold = 100 %}
+
+// 多行代码
+{%
+  const sorted = g.inventory.sort((a, b) => b.value - a.value);
+  l.topItem = sorted[0];
+  g.lastSort = Date.now();
+%}
+
+// 条件判断 — 完全标准 JS，用 print() 输出
+{%
+  if (g.gold > 50) {
+    print("你很富有！");
+    print('<strong>继续冒险吧！</strong>');
+  } else {
+    print("你需要更多金币。");
+  }
+%}
+
+// 循环
+{%
+  print('<ul>');
+  for (const item of g.inventory) {
+    print(`<li>${item.name} x${item.count}</li>`);
+  }
+  print('</ul>');
+%}
+
+// 复杂逻辑
+{%
+  // fetch、DOM 操作、任何合法 JS
+  const el = document.querySelector('.custom-ui');
+  if (el) el.style.display = 'block';
+  
+  // 数据处理
+  const total = g.inventory.reduce((sum, i) => sum + i.value, 0);
+  g.netWorth = total;
+  print(`总资产: ${total} 金币`);
+%}
+```
+
+#### Python 代码块（`py:` 声明）
+
+```python
+{% py:
+if g["gold"] > 50:
+    print("你很富有！")
+    print("<strong>继续冒险吧！</strong>")
+else:
+    print("你需要更多金币。")
+%}
+
+{% py:
+import json
+data = sorted(g["inventory"], key=lambda x: x["value"], reverse=True)
+l["topItem"] = data[0]
+for item in data:
+    print(f"<li>{item['name']} x{item['count']}</li>")
+%}
+```
+
+> Python 中通过 `g`、`l`、`p` 字典对象访问变量，`print()` 输出内容。与 JS 接口一致。
+
+---
+
+### 1.5 场景跳转
+
+```
+[[前往城堡]]                                     // 基本链接
+[[点击这里->城堡大厅]]                            // 显示文本 → 目标
+[[城堡大厅<-点击这里]]                            // 目标 ← 显示文本
+[[前往城堡->城堡大厅|{ quest: "rescue" }]]        // 带参跳转（传入 p）
+```
+
+---
+
+### 1.6 API（代码块内调用）
+
+```javascript
+// 导航
+Freebird.goto("城堡大厅");
+Freebird.goto("城堡大厅", { gold: 50 });
+Freebird.back();
+Freebird.restart();
+
+// 存档
+Freebird.save("slot1");
+Freebird.load("slot1");
+Freebird.listSaves();            // → [{slot, date, passage}]
+Freebird.deleteSave("slot1");
+
+// 信息
+Freebird.passage;                // 当前 passage 名
+Freebird.passages;               // 所有 passage 名列表
+Freebird.visited("场景名");       // boolean
+Freebird.visitCount("场景名");    // number
+```
+
+---
+
+## 二、项目模式（AI Vibe 友好）
+
+### 2.1 设计理念
+
+问题：Twine 把所有 passage 存在一个大文件中（localStorage 或单个 HTML），AI 无法方便地读写单个场景。
+
+方案：支持**文件夹项目结构**，每个 passage 一个 `.md` 文件，可 build 为单文件，也可将单文件 unpack 回文件夹。
+
+### 2.2 项目结构
+
+```
+my-story/
+├── freebird.json              # 总纲（故事元数据 + 全局变量初始值）
+├── global.js                  # 全局 JS（等同于 Story JavaScript）
+├── global.css                 # 全局 CSS（等同于 Story Stylesheet）
+│
+├── 开始.md                    # 起始 passage
+│
+├── 城堡/                      # 房间文件夹
+│   ├── 大厅.md
+│   ├── 地牢.md
+│   └── 塔楼.md
+│
+├── 森林/
+│   ├── 入口.md
+│   └── 深处.md
+│
+├── 商店/
+│   └── 武器店.md
+│
+└── dist/                      # 构建输出
+    └── story.html             # 打包后的单文件
+```
+
+### 2.3 总纲 `freebird.json`
+
+```json
+{
+  "name": "我的冒险故事",
+  "ifid": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+  "start": "开始",
+  "format": "Freebird",
+  "formatVersion": "1.0.0",
+  "globals": {
+    "playerName": "勇者",
+    "gold": 0,
+    "hp": 100,
+    "inventory": []
+  },
+  "tags": {
+    "重要": "red",
+    "已完成": "green"
+  }
+}
+```
+
+- `start`：起始 passage 名称（对应文件名，不含 `.md`）
+- `globals`：全局变量初始值（加载时注入 `g`）
+- `tags`：标签颜色定义
+
+### 2.4 passage 文件格式（`.md`）
+
+```markdown
+---
+tags: [城堡, 重要]
+---
+你站在城堡大厅的中央。巨大的枝形吊灯在头顶摇曳。
+
+{%
+  if (!g.castleVisited) {
+    g.castleVisited = true;
+    print("<em>这是你第一次来到这里。</em>");
+  }
+%}
+
+去向哪里？
+
+[[探索地牢->城堡/地牢]]
+[[登上塔楼->城堡/塔楼]]
+[[离开城堡->森林/入口]]
+```
+
+规则：
+- **文件名** = passage 名称（不含 `.md` 后缀）
+- **文件夹路径** = passage 名称前缀（`城堡/大厅` → passage 名为 `城堡/大厅`）
+- 可选 YAML frontmatter（`---` 包裹）定义 tags
+- 正文就是 passage 文本
+
+### 2.5 CLI 工具
+
+在项目根目录使用（Node.js 脚本）：
+
+```bash
+# 构建 → 单文件 HTML
+node freebird-cli.js build
+
+# 从单文件 HTML 拆回文件夹结构
+node freebird-cli.js unpack story.html
+
+# 从 Twine 导出的 HTML 转为项目结构
+node freebird-cli.js unpack exported-from-twine.html
+
+# 导入到 Twine（生成 Twee 格式供 Twine 导入）
+node freebird-cli.js twee
+```
+
+#### build 流程
+
+```
+读取 freebird.json
+  ↓
+递归扫描所有 .md 文件
+  ↓
+解析 frontmatter → tags
+文件路径 → passage name
+正文 → passage text
+  ↓
+读取 global.js → Story JavaScript
+读取 global.css → Story Stylesheet
+  ↓
+注入 Freebird format source HTML
+  ↓
+生成 <tw-storydata> + <tw-passagedata> 结构
+  ↓
+输出 dist/story.html
+```
+
+#### unpack 流程
+
+```
+解析 HTML 中的 <tw-storydata>
+  ↓
+提取每个 <tw-passagedata>
+  ↓
+name → 文件路径 (用 / 分隔创建文件夹)
+tags → YAML frontmatter
+text → .md 正文
+  ↓
+提取 stylesheet → global.css
+提取 script → global.js
+  ↓
+生成 freebird.json（从 storydata 属性）
+```
+
+### 2.6 AI 工作流
+
+AI（比如你在 SillyTavern 中用的模型）可以这样工作：
+
+1. **读取总纲**：`freebird.json` 了解故事全貌
+2. **浏览房间列表**：按文件夹浏览所有 passage
+3. **编辑单个场景**：修改指定 `.md` 文件
+4. **新增场景**：在对应文件夹中创建新 `.md` 文件
+5. **构建测试**：运行 `node freebird-cli.js build`
+6. **浏览器测试**：打开 `dist/story.html`
+
+文件小、结构清晰、文件名即场景名——AI 友好度拉满。
+
+---
+
+## 三、改动文件清单
+
+| 操作 | 路径 | 说明 | 预估大小 |
+|------|------|------|----------|
+| **[NEW]** | `public/story-formats/freebird-1.0.0/format.js` | 故事格式主文件 | ~15KB |
+| **[NEW]** | `public/story-formats/freebird-1.0.0/icon.svg` | 格式图标 | ~2KB |
+| **[MODIFY]** | `src/store/story-formats/defaults.ts` | 注册 Freebird | +4行 |
+| **[NEW]** | `public/story-formats/freebird-1.0.0/freebird-cli.js` | CLI 工具 | ~8KB |
+
+---
+
+## 四、`format.js` 内部架构
+
+### 4.1 运行时核心
+
+```
+class Freebird
+│
+├── constructor() 
+│   ├── 解析 <tw-storydata> 提取所有 passage
+│   ├── 初始化 g = globals || {}
+│   ├── 初始化 l = {}, p = {}
+│   └── 渲染 startnode passage
+│
+├── 模板引擎
+│   ├── render(text) → string
+│   │   ├── 提取并执行 {% %} 代码块（收集 print 输出）
+│   │   ├── 置换 {{ expr }} 表达式
+│   │   ├── 置换 $var$ / #var# 变量简写
+│   │   ├── 转换 [[link]] 为 <a> 标签
+│   │   └── 纯文本自动 <p> 分段
+│   │
+│   ├── execJS(code) → string
+│   │   └── new Function('g','l','p','print','Freebird', code)
+│   │
+│   └── execPython(code) → string     // v1.0 可选
+│       └── Pyodide.runPython(code, {g, l, p})
+│
+├── 变量系统
+│   ├── g: {}         // 全局，跨 passage 持久
+│   ├── l: {}         // 局部，render 时重置
+│   └── p: {}         // 传递，goto 时设置
+│
+├── 导航
+│   ├── goto(name, passVars?)
+│   │   ├── history.push(current)
+│   │   ├── l = {}
+│   │   ├── p = passVars || {}
+│   │   ├── visitCount[name]++
+│   │   └── render + display
+│   ├── back()
+│   ├── restart()
+│   └── history: string[]
+│
+├── 存档
+│   ├── save(slot)       → localStorage JSON
+│   ├── load(slot)       → 恢复 g + history + goto
+│   ├── listSaves()      → [{slot, date, passage}]
+│   └── deleteSave(slot)
+│
+└── 事件钩子
+    ├── onBeforeRender(name)
+    └── onAfterRender(name)
+```
+
+### 4.2 模板编译示意
+
+passage 文本：
+```
+你有 $gold$ 个金币。
+{%
+  if (g.gold > 50) {
+    print('<strong>你可以买装备了！</strong>');
+  }
+%}
+去 [[商店]] 看看。
+```
+
+编译为：
+```javascript
+// Step 1: 分割文本段和代码块
+segments = [
+  { type: 'text', content: '你有 $gold$ 个金币。\n' },
+  { type: 'code', lang: 'js', content: 'if (g.gold > 50) { print(...) }' },
+  { type: 'text', content: '\n去 [[商店]] 看看。\n' }
+]
+
+// Step 2: 依次处理
+// text 段 → 替换 $gold$ → g.gold 的值
+// code 段 → 执行，收集 print 输出
+// text 段 → 替换 [[商店]] → <a>
+```
+
+### 4.3 编辑器扩展（hydrate）
+
+#### 中文工具栏
+
+| 按钮 | 图标 | 插入内容 |
+|------|------|----------|
+| 加粗 | **B** | `<strong>选中文本</strong>` |
+| 斜体 | *I* | `<em>选中文本</em>` |
+| 链接 | 🔗 | `[[显示文本->目标场景]]` |
+| 变量 ▼ | 📦 | 子菜单 |
+| ├ 显示全局变量 | | `$变量名$` |
+| ├ 设置全局变量 | | `{% g.name = value %}` |
+| └ 设置局部变量 | | `{% l.name = value %}` |
+| 逻辑 ▼ | ⚡ | 子菜单 |
+| ├ 条件输出 | | `{%\n  if (condition) {\n    print("...");\n  }\n%}` |
+| ├ 循环输出 | | `{%\n  for (const x of arr) {\n    print(...);\n  }\n%}` |
+| └ 代码块 | | `{% ... %}` |
+| HTML | 🧩 | `<div>\n...\n</div>` |
+
+#### CodeMirror 语法高亮
+
+| 语法 | Token | 颜色 |
+|------|-------|------|
+| `[[...]]` | `link` | 蓝色 |
+| `$name$` / `#name#` | `variable-2` | 紫色 |
+| `{{ ... }}` | `variable` | 绿色 |
+| `{% ... %}` | `meta` | 橙色（内部按 JS 高亮） |
+| HTML 标签 | `tag` | 红色 |
+
+---
+
+## 五、实施步骤
+
+| Step | 内容 | 产出 |
+|------|------|------|
+| 1 | 创建目录、icon.svg、format.js 骨架、注册 defaults.ts | Twine 中可见 Freebird |
+| 2 | 实现模板引擎（`$var$`/`#var#`、`{{ }}`、`{% %}`、print()、自动分段） | passage 文本能正确渲染 |
+| 3 | 实现链接解析与导航（`[[]]`、goto、back、history） | 场景间跳转 |
+| 4 | 实现变量系统（g/l/p、带参跳转、作用域生命周期） | 变量读写正常 |
+| 5 | 实现存档 API + 默认样式 + passage 切换淡入淡出 | 完整运行时 |
+| 6 | 实现 hydrate（CodeMirror 语法高亮 + 中文工具栏） | 编辑体验完整 |
+| 7 | 实现 CLI 工具（build / unpack / twee） | 项目模式可用 |
+| 8 | 测试与调试 | 全流程跑通 |
+
+---
+
+## 六、决策确认
+
+以下问题我按推荐值预设，如果你没意见就按这个来：
+
+| 问题 | 预设值 |
+|------|--------|
+| Python 支持 | v1.0 暂不启用 Pyodide，预留 `{% py: %}` 和 `{{ py: }}` 语法识别但提示"需安装扩展"。后续版本支持 |
+| 代码报错 | passage 区域内联红色提示 + 控制台输出 |
+| 默认主题 | 简洁白色，少量现代装饰 |
+| 存档位置 | localStorage |
+| 场景切换 | 简单淡入淡出 |
+
+---
+
+## 七、验证计划
+
+1. `npm run start` 启动 Twine dev server
+2. 创建新故事 → 选择 Freebird → 验证编辑器工具栏中文显示
+3. 功能测试矩阵：
+
+| 功能 | 测试方法 |
+|------|----------|
+| 纯文本 / 自动分段 | 多段文本验证 `<p>` 包裹 |
+| HTML 直写 | div、table、自定义样式 |
+| 混合模式 | 含块级标签跳过自动分段 |
+| `$var$` / `#var#` | 全局/局部/传递变量显示 |
+| `{{ expr }}` | 运算、方法调用、三元 |
+| `{% code %}` + print() | 条件输出、循环输出 |
+| `[[link]]` | 基本/箭头/带参 |
+| 变量作用域 | l 清空、p 传递、g 持久 |
+| 存档 API | save/load/list/delete |
+| 工具栏 | 中文按钮插入正确代码片段 |
+| 语法高亮 | 各 token 颜色正确 |
+| CLI build | .md 文件夹 → 单文件 HTML |
+| CLI unpack | 单文件 HTML → .md 文件夹 |

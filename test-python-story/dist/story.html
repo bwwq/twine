@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Python 测试用故事</title>
+<style>
+body { background: #222; color: #eee; font-family: sans-serif; margin: 2em auto; max-width: 800px; line-height: 1.6; }
+a { color: #6ea8fe; text-decoration: none; cursor: pointer; }
+a:hover { text-decoration: underline; }
+#story { transition: opacity 0.3s ease; }
+#story.loading { opacity: 0; }
+tw-storydata { display: none; }
+</style>
+</head>
+<body>
+<div id="story"></div>
+<tw-storydata name="Python 测试用故事" startnode="1" creator="Freebird CLI" creator-version="1.0.0" format="Freebird" format-version="1.0.0" ifid="D208D693-9F41-41E5-B1AB-985FB9A8E012" options="" tags="" zoom="1" hidden><style role="stylesheet" id="twine-user-stylesheet" type="text/twine-css"></style><script role="script" id="twine-user-script" type="text/twine-javascript">// Auto-generated from freebird.json globals
+g["playerName"] = "测试勇者";
+g["gold"] = 100;
+</script><tw-passagedata pid="1" name="开始" tags="" position="0,0" size="100,100">你好，$playerName$。你有 $gold$ 金币。
+
+{% py:
+if g[&quot;gold&quot;] &gt;= 100:
+    print(&quot;&lt;p&gt;哇，你是个有钱人！&lt;/p&gt;&quot;)
+else:
+    print(&quot;&lt;p&gt;穷光蛋！&lt;/p&gt;&quot;)
+%}
+
+计算一下表达式: {{ py: g[&quot;gold&quot;] * 2 }}
+
+[[测试跳转-&gt;第二页]]</tw-passagedata><tw-passagedata pid="2" name="第二页" tags="" position="0,0" size="100,100">到了这里，说明引擎和跳转正常！
+
+尝试修改变量。
+{% py:
+g[&quot;gold&quot;] -= 10
+print(f&quot;花了10金币，现在你有 {g['gold']} 金币。&quot;)
+%}
+
+[[返回-&gt;开始]]</tw-passagedata></tw-storydata>
+<script>
+(async function() {
+const storyEl = document.getElementById('story');
+let pyodide = null;
+async function loadPyodideEnv() {
+if (pyodide) return pyodide;
+if (window.pyodideLoading) return window.pyodideLoading;
+window.pyodideLoading = new Promise((resolve, reject) => {
+let script = document.createElement('script');
+script.src = './pyodide/pyodide.js';
+script.onload = async () => {
+try {
+pyodide = await loadPyodide({ indexURL: './pyodide/' });
+resolve(pyodide);
+} catch (e) {
+reject(e);
+}
+};
+script.onerror = () => {
+console.warn("本地未找到 Pyodide 分发，正退回使用 CDN 加载...");
+let cdnScript = document.createElement('script');
+cdnScript.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+cdnScript.onload = async () => {
+try {
+pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/' });
+resolve(pyodide);
+} catch(e) { reject(e); }
+};
+cdnScript.onerror = reject;
+document.head.appendChild(cdnScript);
+};
+document.head.appendChild(script);
+});
+return window.pyodideLoading;
+}
+// 1. 提取核心数据
+const dataEl = document.querySelector('tw-storydata') || { getAttribute:()=>'Start', children:[] };
+let startNodeId = dataEl.getAttribute('startnode') || "1";
+const passages = {};
+const passageElements = document.querySelectorAll('tw-passagedata');
+let startPassageName = "";
+passageElements.forEach(el => {
+const name = el.getAttribute('name');
+const text = el.innerText || el.textContent;
+const pid = el.getAttribute('pid');
+passages[name] = text;
+if (pid === startNodeId) startPassageName = name;
+});
+if (!startPassageName && passageElements.length > 0) {
+startPassageName = passageElements[0].getAttribute('name');
+}
+// 2. 引擎状态配置
+window.g = window.g || {};
+let g = window.g;
+const userScripts = document.querySelectorAll('script[type="text/twine-javascript"]');
+userScripts.forEach(script => {
+try {
+new Function('g', script.textContent)(g);
+} catch(e) {
+console.error("执行初始脚本失败:", e);
+}
+});
+const userStyles = document.querySelectorAll('style[type="text/twine-css"]');
+userStyles.forEach(style => {
+const newStyle = document.createElement('style');
+newStyle.textContent = style.textContent;
+document.head.appendChild(newStyle);
+});
+let l = {};
+let p = {};
+let historySeq = [];
+let visitCounts = {};
+let currentPassage = "";
+let ifid = dataEl.getAttribute('ifid') || "default_ifid";
+// 给 Python 绑定
+window.printBuf = [];
+window.fbPrint = function(...args) { window.printBuf.push(args.join(" ")); };
+function execJS(code) {
+window.printBuf = [];
+try {
+const fn = new Function('g', 'l', 'p', 'print', 'Freebird', code);
+fn(g, l, p, window.fbPrint, window.Freebird);
+} catch(e) {
+window.printBuf.push(`<span style="color:red">[JS执行错误: ${e.message}]</span>`);
+}
+return window.printBuf.join("");
+}
+function execPython(code) {
+if (!pyodide) return `<span style="color:red">[未加载 Pyodide，无法执行 Python 代码]</span>`;
+window.printBuf = [];
+try {
+pyodide.runPython(code);
+} catch(e) {
+window.printBuf.push(`<span style="color:red">[Python执行错误: ${e.message}]</span>`);
+}
+return window.printBuf.join("");
+}
+async function renderTemplate(text) {
+if (text.includes('py:')) {
+try {
+await loadPyodideEnv();
+if (pyodide) {
+pyodide.globals.set("g", g);
+pyodide.globals.set("l", l);
+pyodide.globals.set("p", p);
+pyodide.globals.set("print", window.fbPrint);
+pyodide.globals.set("Freebird", window.Freebird);
+}
+} catch(e) {
+console.error(e);
+}
+}
+// 第一阶段：提取 {% %} 和 {{ }} 进行逻辑置换
+let processed = text.replace(/{%([\s\S]*?)%}/g, (match, code) => {
+code = code.trim();
+if (code.startsWith('py:')) {
+return execPython(code.substring(3));
+} else {
+return execJS(code);
+}
+});
+processed = processed.replace(/{{([\s\S]*?)}}/g, (match, code) => {
+code = code.trim();
+if (code.startsWith('py:')) {
+return execPython(`print(${code.substring(3)})`);
+} else {
+return execJS(`print(${code})`);
+}
+});
+// 第二阶段：变量展开 $var$ 或 #var#
+processed = processed.replace(/([$#])([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\1/g, (match, sep, varPath) => {
+let context = "g";
+let path = varPath;
+if (varPath.startsWith("l.")) { context = "l"; path = varPath.substring(2); }
+else if (varPath.startsWith("p.")) { context = "p"; path = varPath.substring(2); }
+else if (varPath.startsWith("g.")) { context = "g"; path = varPath.substring(2); }
+else { context = "g"; path = varPath; }
+let obj = context === "g" ? g : (context === "l" ? l : p);
+let val = path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : undefined), obj);
+return val !== undefined ? val : match;
+});
+// 第三阶段：解析链接 [[link]]
+processed = processed.replace(/\[\[(.*?)\]\]/g, (match, inner) => {
+let target = inner;
+let display = inner;
+let vars = null;
+let pipeIndex = inner.lastIndexOf("|");
+if (pipeIndex > -1) {
+try {
+let varStr = inner.substring(pipeIndex + 1).trim();
+if (varStr.startsWith("{")) {
+vars = varStr; 
+}
+inner = inner.substring(0, pipeIndex);
+} catch(e) {}
+}
+let rightArrow = inner.indexOf("->");
+let leftArrow = inner.indexOf("<-");
+if (rightArrow > -1) {
+display = inner.substring(0, rightArrow).trim();
+target = inner.substring(rightArrow + 2).trim();
+} else if (leftArrow > -1) {
+target = inner.substring(0, leftArrow).trim();
+display = inner.substring(leftArrow + 2).trim();
+} else {
+target = inner.trim();
+display = inner.trim();
+}
+let varsAttr = vars ? ` data-vars="${encodeURIComponent(vars)}"` : '';
+let safeTarget = target.replace(/"/g, '&quot;');
+return `<a class="fb-link" data-target="${safeTarget}"${varsAttr}>${display}</a>`;
+});
+// 第四阶段：自动分段 (如果含块级 HTML 标签则不做)
+if (!/(<div|<section|<table|<header|<ul|<ol|<h[1-6]|<p|<hr|<blockquote)/i.test(processed)) {
+processed = processed.split(/
+\s*
+/)
+.map(para => `<p>${para.replace(/
+/g, '<br>')}</p>`)
+.join('
+');
+}
+return processed;
+}
+async function displayPassage(name, passVars = {}) {
+let text = passages[name];
+if (!text) {
+text = `抱歉，找不到场景: ${name}`;
+}
+currentPassage = name;
+p = passVars;
+visitCounts[name] = (visitCounts[name] || 0) + 1;
+if (pyodide) { pyodide.globals.set("p", p); } 
+storyEl.classList.add('loading');
+let html = await renderTemplate(text);
+setTimeout(() => {
+storyEl.innerHTML = html;
+storyEl.classList.remove('loading');
+document.querySelectorAll('.fb-link').forEach(a => {
+a.addEventListener('click', (e) => {
+let target = a.getAttribute('data-target');
+let vstr = a.getAttribute('data-vars');
+let args = {};
+if (vstr) {
+try {
+args = new Function('return ' + decodeURIComponent(vstr))() || {};
+} catch(err) {} 
+}
+window.Freebird.goto(target, args);
+});
+});
+}, 30);
+}
+window.Freebird = {
+goto: function(name, passVars = {}) {
+if (currentPassage) historySeq.push(currentPassage);
+l = {}; 
+if(pyodide) pyodide.globals.set("l", l); 
+displayPassage(name, passVars);
+},
+back: function() {
+if (historySeq.length > 0) {
+let prev = historySeq.pop();
+l = {};
+if(pyodide) pyodide.globals.set("l", l);
+displayPassage(prev);
+}
+},
+restart: function() {
+historySeq = [];
+g = {};
+window.g = g;
+l = {};
+p = {};
+visitCounts = {};
+currentPassage = "";
+const userScripts = document.querySelectorAll('script[type="text/twine-javascript"]');
+userScripts.forEach(script => { try { new Function('g', script.textContent)(g); } catch(e) {} });
+if(pyodide) {
+pyodide.globals.set("g", g);
+pyodide.globals.set("l", l);
+pyodide.globals.set("p", p);
+}
+displayPassage(startPassageName);
+},
+save: function(slot) {
+let state = { g, historySeq, currentPassage, visitCounts, date: Date.now() };
+localStorage.setItem("fb_" + ifid + "_" + slot, JSON.stringify(state));
+},
+load: function(slot) {
+let data = localStorage.getItem("fb_" + ifid + "_" + slot);
+if (data) {
+try {
+let state = JSON.parse(data);
+g = state.g;
+window.g = g;
+historySeq = state.historySeq;
+visitCounts = state.visitCounts || {};
+l = {}; p = {};
+if(pyodide) {
+pyodide.globals.set("g", g);
+pyodide.globals.set("l", l);
+pyodide.globals.set("p", p);
+}
+displayPassage(state.currentPassage);
+} catch(e) {}
+}
+},
+listSaves: function() {
+let prefix = "fb_" + ifid + "_";
+let saves = [];
+for (let i = 0; i < localStorage.length; i++) {
+let key = localStorage.key(i);
+if (key && key.startsWith(prefix)) {
+try {
+let data = JSON.parse(localStorage.getItem(key));
+saves.push({ slot: key.substring(prefix.length), date: data.date, passage: data.currentPassage });
+} catch(e) {}
+}
+}
+return saves;
+},
+deleteSave: function(slot) {
+localStorage.removeItem("fb_" + ifid + "_" + slot);
+},
+visited: function(name) { return (visitCounts[name] || 0) > 0; },
+visitCount: function(name) { return visitCounts[name] || 0; },
+get passage() { return currentPassage; },
+get passages() { return Object.keys(passages); },
+get passageList() { return Object.keys(passages); }
+};
+// 启动预加载环境 (完全静默)
+loadPyodideEnv().catch(e => console.warn(e));
+// 启动
+if (startPassageName) {
+displayPassage(startPassageName);
+} else {
+storyEl.innerHTML = "<h1>暂无内容</h1>";
+}
+})();
+</script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 
 | | 原版 Twine + Harlowe | 本版 + Freebird |
 |---|---|---|
-| 代码风格 | 特殊宏语法 `(if:)` `(set:)` | 标准 JavaScript + `print()` |
+| 代码风格 | 特殊宏语法 `(if:)` `(set:)` | 标准 JS + Python 双语言 + `print()` |
 | 变量 | `$var` 全局唯一 | `g`/`l`/`p` 三级作用域 |
 | HTML | 受限，需转义 | 原生直写，自动识别 |
 | 编辑器工具栏 | 英文，功能有限 | 中文，31 个命令 |
@@ -55,7 +55,18 @@ npm start          # 启动开发服务器 http://localhost:5173
 %}
 ```
 
-所有逻辑在 `{% %}` 内部完成，通过 `print()` 输出。纯正 JavaScript，无魔法语法。
+所有逻辑在 `{% %}` 内部完成，通过 `print()` 输出。默认 JavaScript，加 `py` 前缀切换 Python：
+
+```
+{% py:
+if g["gold"] > 50:
+    print("你很富有！")
+else:
+    print("继续努力。")
+%}
+```
+
+> Python 由 [Skulpt](https://skulpt.org/) (~1.5MB) 驱动，按需加载，初始化 <100ms。纯 JS 故事不加载任何额外依赖。
 
 ### 链接
 ```
@@ -137,21 +148,27 @@ AI 可以：
 
 ```
 public/story-formats/freebird-1.0.0/
-├── format.js          # 故事格式（运行时 + 编辑器扩展）
+├── engine.html        # 运行时核心源码
+├── format.js          # 构建产物（运行时 + 编辑器扩展，勿手动编辑）
+├── build-format.js    # 将 engine.html 嵌入 format.js 的构建脚本
 ├── icon.svg           # 格式图标
 └── freebird-cli.js    # CLI 工具
 
 src/store/story-formats/defaults.ts   # 格式注册
+vite.config.mts                       # 含 freebird-sync 自动同步插件
 ```
 
 ## 构建与开发
 
 ```bash
 npm install            # 安装依赖
-npm start              # 开发服务器
+npm start              # 开发服务器（自动同步 engine.html → format.js）
 npm run build          # 生产构建
 npm test               # 运行测试
 ```
+
+> 修改 `engine.html` 后，手动同步运行 `node public/story-formats/freebird-1.0.0/build-format.js`，
+> 或启动 `npm start` 由 Vite 插件自动完成。
 
 ## 致谢
 

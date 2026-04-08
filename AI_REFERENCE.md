@@ -28,16 +28,24 @@ Freebird 是一个轻量级互动叙事格式，运行在浏览器中。故事�
 
 ### 表达式输出
 
+支持默认的 JS 表达式，以及通过前缀 `py ` 声明的 Python 表达式：
+
 ```
 {{ g.gold + 100 }}
 {{ g.name.toUpperCase() }}
+{{ py g["gold"] + 100 }}
+{{ py g["name"].upper() }}
 ```
 
 ### 代码块
 
 代码块是 **自包含** 的。用 `print()` 输出内容到页面。
 
-```
+分为默认的 **JavaScript** 块，和带有 `py ` 前缀的 **Python** 块两种。
+两种语言环境内均可直接访问 `g` (全局), `l` (局部), `p` (传递) 变量以及调用 `print` 方法。
+
+**JavaScript 示例:**
+```javascript
 {%
   if (g.gold > 50) {
     print("你很富有！");
@@ -46,21 +54,36 @@ Freebird 是一个轻量级互动叙事格式，运行在浏览器中。故事�
     print("你需要更多金币。");
   }
 %}
-```
 
-```
 {%
   for (var item of g.inventory) {
     print("<li>" + item.name + " x" + item.count + "</li>");
   }
 %}
 ```
-
 赋值：
-```
+```javascript
 {% g.gold = 100 %}
 {% l.temp = g.gold * 2 %}
 ```
+
+**Python 示例 (Skulpt 支持):**
+> 运行时：[Skulpt](https://skulpt.org/) (~1.5MB)，按需加载，初始化 <100ms。
+> `g`、`l`、`p` 在 Python 中作为普通 dict 可读可写，修改会自动同步回 JS 引擎。
+```python
+{% py:
+if g["gold"] > 50:
+    print("你很富有！")
+    print('<strong>买装备吧</strong>')
+else:
+    print("你需要更多金币。")
+%}
+
+{% py: g["gold"] = 100 %}
+```
+
+> [!NOTE]
+> Skulpt 支持大部分 Python 3 语法（if/for/while/def/class/列表推导等），但不支持 `import json`、`import numpy` 等第三方库。内置模块 `math`、`random`、`string` 等可正常使用。
 
 ### 场景跳转
 
@@ -199,3 +222,11 @@ node freebird-cli.js twee [目录]             # 导出 Twee 格式
 - 传递变量 `p` 通过 `[[链接->目标|{ key: val }]]` 语法传入
 - `print()` 的输出是 HTML，可以包含标签
 - 代码块中可以用任何合法的 JavaScript
+- Python 代码块中 `g`/`l`/`p` 是 Python dict，修改后自动回写到引擎
+- Python 环境仅在故事包含 `py:` 或 `py ` 前缀的代码块时才会加载，纯 JS 故事零开销
+
+### 构建与开发
+
+- `engine.html` 是运行时核心，修改后需执行 `node build-format.js` 同步到 `format.js`
+- 开发模式下 Vite 的 `freebird-sync` 插件会在 `npm run start` 时自动执行同步
+- **不要手动编辑 `format.js`**，它由 `build-format.js` 自动生成

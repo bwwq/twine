@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react-swc';
 import browserslistToEsbuild from 'browserslist-to-esbuild';
+import {execSync} from 'child_process';
 import {defineConfig} from 'vite';
 import checker from 'vite-plugin-checker';
 import {nodePolyfills} from 'vite-plugin-node-polyfills';
@@ -19,6 +20,12 @@ export default defineConfig({
 		'process.env.VITE_APP_VERSION': JSON.stringify(packageJson.version)
 	},
 	plugins: [
+		{
+			name: 'freebird-sync',
+			buildStart() {
+				execSync('node public/story-formats/freebird-1.0.0/build-format.js', {stdio: 'inherit'});
+			}
+		},
 		checker({
 			eslint: {lintCommand: 'eslint src'},
 			overlay: {

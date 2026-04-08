@@ -1,0 +1,10 @@
+{
+  "name": "Python 测试用故事",
+  "start": "开始",
+  "format": "Freebird",
+  "formatVersion": "1.0.0",
+  "globals": {
+    "playerName": "测试勇者",
+    "gold": 100
+  }
+}

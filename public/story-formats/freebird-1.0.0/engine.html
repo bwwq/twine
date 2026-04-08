@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{STORY_NAME}}</title>
+  <style>
+    body { background: #222; color: #eee; font-family: sans-serif; margin: 2em auto; max-width: 800px; line-height: 1.6; }
+    a { color: #6ea8fe; text-decoration: none; cursor: pointer; }
+    a:hover { text-decoration: underline; }
+    #story { transition: opacity 0.3s ease; }
+    #story.loading { opacity: 0; }
+    tw-storydata { display: none; }
+  </style>
+</head>
+<body>
+  <div id="story"></div>
+  {{STORY_DATA}}
+  
+  <script>
+    (async function() {
+      const storyEl = document.getElementById('story');
+      let _pyReady = false;
+
+      async function loadPythonEnv() {
+        if (_pyReady) return;
+        if (window._pyLoading) return window._pyLoading;
+        window._pyLoading = new Promise((resolve, reject) => {
+          const s1 = document.createElement('script');
+          s1.src = 'https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js';
+          s1.onload = () => {
+            const s2 = document.createElement('script');
+            s2.src = 'https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js';
+            s2.onload = () => {
+              try {
+                Sk.configure({
+                  output: function(text) { window.printBuf.push(text); },
+                  read: function(x) {
+                    if (Sk.builtinFiles && Sk.builtinFiles["files"][x] !== undefined)
+                      return Sk.builtinFiles["files"][x];
+                    throw "File not found: '" + x + "'";
+                  },
+                  __future__: Sk.python3
+                });
+                _pyReady = true;
+                resolve();
+              } catch(e) { window._pyError = e.toString(); reject(e); }
+            };
+            s2.onerror = () => { window._pyError = 'stdlib 加载失败'; reject(new Error('stdlib load failed')); };
+            document.head.appendChild(s2);
+          };
+          s1.onerror = () => { window._pyError = '加载失败'; reject(new Error('Skulpt load failed')); };
+          document.head.appendChild(s1);
+        });
+        return window._pyLoading;
+      }
+
+      // 1. 提取核心数据
+      const dataEl = document.querySelector('tw-storydata') || { getAttribute:()=>'Start', children:[] };
+      let startNodeId = dataEl.getAttribute('startnode') || "1";
+      const passages = {};
+      const passageElements = document.querySelectorAll('tw-passagedata');
+      let startPassageName = "";
+
+      passageElements.forEach(el => {
+        const name = el.getAttribute('name');
+        const text = el.innerText || el.textContent;
+        const pid = el.getAttribute('pid');
+        passages[name] = text;
+        if (pid === startNodeId) startPassageName = name;
+      });
+
+      if (!startPassageName && passageElements.length > 0) {
+        startPassageName = passageElements[0].getAttribute('name');
+      }
+
+      // 2. 引擎状态配置
+      window.g = window.g || {};
+      let g = window.g;
+      
+      const userScripts = document.querySelectorAll('script[type="text/twine-javascript"]');
+      userScripts.forEach(script => {
+         try {
+           new Function('g', script.textContent)(g);
+         } catch(e) {
+           console.error("执行初始脚本失败:", e);
+         }
+      });
+      
+      const userStyles = document.querySelectorAll('style[type="text/twine-css"]');
+      userStyles.forEach(style => {
+         const newStyle = document.createElement('style');
+         newStyle.textContent = style.textContent;
+         document.head.appendChild(newStyle);
+      });
+      
+      let l = {};
+      let p = {};
+      let historySeq = [];
+      let visitCounts = {};
+      let currentPassage = "";
+      
+      let ifid = dataEl.getAttribute('ifid') || "default_ifid";
+
+      window.printBuf = [];
+      window.fbPrint = function(...args) { window.printBuf.push(args.join(" ")); };
+
+      function execJS(code) {
+        window.printBuf = [];
+        try {
+          const fn = new Function('g', 'l', 'p', 'print', 'Freebird', code);
+          fn(g, l, p, window.fbPrint, window.Freebird);
+        } catch(e) {
+          window.printBuf.push(`<span style="color:red">[JS执行错误: ${e.message}]</span>`);
+        }
+        return window.printBuf.join("");
+      }
+
+      function execPython(code) {
+        if (!_pyReady) return `<span style="color:red">[Python 环境未就绪: ${window._pyError || '未知'}]</span>`;
+        window.printBuf = [];
+        try {
+          Sk.configure({
+            output: function(text) { window.printBuf.push(text); },
+            read: function(x) {
+              if (Sk.builtinFiles && Sk.builtinFiles["files"][x] !== undefined)
+                return Sk.builtinFiles["files"][x];
+              throw "File not found: '" + x + "'";
+            },
+            __future__: Sk.python3
+          });
+          // Inject g/l/p as Python builtins via FFI
+          Sk.builtins.g = Sk.ffi.remapToPy(g);
+          Sk.builtins.l = Sk.ffi.remapToPy(l);
+          Sk.builtins.p = Sk.ffi.remapToPy(p);
+          Sk.importMainWithBody("<stdin>", false, code, false);
+          // Read back modified variables
+          try {
+            const newG = Sk.ffi.remapToJs(Sk.builtins.g);
+            Object.keys(g).forEach(k => delete g[k]);
+            Object.assign(g, newG);
+          } catch(e) {}
+          try {
+            const newL = Sk.ffi.remapToJs(Sk.builtins.l);
+            Object.keys(l).forEach(k => delete l[k]);
+            Object.assign(l, newL);
+          } catch(e) {}
+        } catch(e) {
+          window.printBuf.push(`<span style="color:red">[Python执行错误: ${e.toString()}]</span>`);
+        }
+        return window.printBuf.join("");
+      }
+
+      async function renderTemplate(text) {
+        if (/py[:\s\n\r]/i.test(text)) {
+           try { await loadPythonEnv(); } catch(e) { console.error(e); }
+        }
+
+        // 第一阶段：提取 {% %} 和 {{ }} 进行逻辑置换
+        let processed = text.replace(/{%([\s\S]*?)%}/g, (match, code) => {
+          code = code.trim();
+          let pyMatch = code.match(/^py[:\s]+([\s\S]*)$/i);
+          if (pyMatch) {
+            return execPython(pyMatch[1]);
+          } else {
+            return execJS(code);
+          }
+        });
+
+        processed = processed.replace(/{{([\s\S]*?)}}/g, (match, code) => {
+          code = code.trim();
+          let pyMatch = code.match(/^py[:\s]+([\s\S]*)$/i);
+          if (pyMatch) {
+             return execPython(`print(${pyMatch[1]})`);
+          } else {
+             return execJS(`print(${code})`);
+          }
+        });
+
+        // 第二阶段：变量展开 $var$ 或 #var#
+        processed = processed.replace(/([$#])([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\1/g, (match, sep, varPath) => {
+           let context = "g";
+           let path = varPath;
+           if (varPath.startsWith("l.")) { context = "l"; path = varPath.substring(2); }
+           else if (varPath.startsWith("p.")) { context = "p"; path = varPath.substring(2); }
+           else if (varPath.startsWith("g.")) { context = "g"; path = varPath.substring(2); }
+           else { context = "g"; path = varPath; }
+
+           let obj = context === "g" ? g : (context === "l" ? l : p);
+           let val = path.split('.').reduce((o, key) => (o && o[key] !== undefined ? o[key] : undefined), obj);
+           return val !== undefined ? val : match;
+        });
+
+        // 第三阶段：解析链接 [[link]]
+        processed = processed.replace(/\[\[(.*?)\]\]/g, (match, inner) => {
+           let target = inner;
+           let display = inner;
+           let vars = null;
+
+           let pipeIndex = inner.lastIndexOf("|");
+           if (pipeIndex > -1) {
+              try {
+                let varStr = inner.substring(pipeIndex + 1).trim();
+                if (varStr.startsWith("{")) {
+                   vars = varStr; 
+                }
+                inner = inner.substring(0, pipeIndex);
+              } catch(e) {}
+           }
+
+           let rightArrow = inner.indexOf("->");
+           let leftArrow = inner.indexOf("<-");
+           if (rightArrow > -1) {
+              display = inner.substring(0, rightArrow).trim();
+              target = inner.substring(rightArrow + 2).trim();
+           } else if (leftArrow > -1) {
+              target = inner.substring(0, leftArrow).trim();
+              display = inner.substring(leftArrow + 2).trim();
+           } else {
+              target = inner.trim();
+              display = inner.trim();
+           }
+
+           let varsAttr = vars ? ` data-vars="${encodeURIComponent(vars)}"` : '';
+           let safeTarget = target.replace(/"/g, '&quot;');
+           return `<a class="fb-link" data-target="${safeTarget}"${varsAttr}>${display}</a>`;
+        });
+
+        // 第四阶段：自动分段 (如果含块级 HTML 标签则不做)
+        if (!(/(<div|<section|<table|<header|<ul|<ol|<h[1-6]|<p|<hr|<blockquote)/i.test(processed))) {
+           processed = processed.split(/\n\s*\n/)
+             .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+             .join('\n');
+        }
+
+        return processed;
+      }
+
+      async function displayPassage(name, passVars = {}) {
+        let text = passages[name];
+        if (!text) {
+           text = `抱歉，找不到场景: ${name}`;
+        }
+        currentPassage = name;
+        p = passVars;
+        visitCounts[name] = (visitCounts[name] || 0) + 1;
+        const needsPyWait = !_pyReady && /py[:\s\n\r]/i.test(text);
+        if (needsPyWait) {
+          storyEl.innerHTML = '<p style="color:#888;text-align:center;margin-top:3em">⏳ 正在加载 Python 运行环境…</p>';
+        } else {
+          storyEl.classList.add('loading');
+        }
+
+        let html = await renderTemplate(text);
+        
+        storyEl.innerHTML = html;
+        storyEl.classList.remove('loading');
+        
+        document.querySelectorAll('.fb-link').forEach(a => {
+          a.addEventListener('click', (e) => {
+            let target = a.getAttribute('data-target');
+            let vstr = a.getAttribute('data-vars');
+            let args = {};
+            if (vstr) {
+              try {
+                args = new Function('return ' + decodeURIComponent(vstr))() || {};
+              } catch(err) {} 
+            }
+            window.Freebird.goto(target, args);
+          });
+        });
+      }
+
+      window.Freebird = {
+        goto: function(name, passVars = {}) {
+           if (currentPassage) historySeq.push(currentPassage);
+           l = {};
+           displayPassage(name, passVars);
+        },
+        back: function() {
+           if (historySeq.length > 0) {
+             let prev = historySeq.pop();
+             l = {};
+             displayPassage(prev);
+           }
+        },
+        restart: function() {
+           historySeq = [];
+           g = {};
+           window.g = g;
+           l = {};
+           p = {};
+           visitCounts = {};
+           currentPassage = "";
+           const userScripts = document.querySelectorAll('script[type="text/twine-javascript"]');
+           userScripts.forEach(script => { try { new Function('g', script.textContent)(g); } catch(e) {} });
+           displayPassage(startPassageName);
+        },
+        save: function(slot) {
+           let state = { g, historySeq, currentPassage, visitCounts, date: Date.now() };
+           localStorage.setItem("fb_" + ifid + "_" + slot, JSON.stringify(state));
+        },
+        load: function(slot) {
+           let data = localStorage.getItem("fb_" + ifid + "_" + slot);
+           if (data) {
+             try {
+                let state = JSON.parse(data);
+                g = state.g;
+                window.g = g;
+                historySeq = state.historySeq;
+                visitCounts = state.visitCounts || {};
+                l = {}; p = {};
+                displayPassage(state.currentPassage);
+             } catch(e) {}
+           }
+        },
+        listSaves: function() {
+           let prefix = "fb_" + ifid + "_";
+           let saves = [];
+           for (let i = 0; i < localStorage.length; i++) {
+              let key = localStorage.key(i);
+              if (key && key.startsWith(prefix)) {
+                  try {
+                      let data = JSON.parse(localStorage.getItem(key));
+                      saves.push({ slot: key.substring(prefix.length), date: data.date, passage: data.currentPassage });
+                  } catch(e) {}
+              }
+           }
+           return saves;
+        },
+        deleteSave: function(slot) {
+           localStorage.removeItem("fb_" + ifid + "_" + slot);
+        },
+        visited: function(name) { return (visitCounts[name] || 0) > 0; },
+        visitCount: function(name) { return visitCounts[name] || 0; },
+        get passage() { return currentPassage; },
+        get passages() { return Object.keys(passages); },
+        get passageList() { return Object.keys(passages); }
+      };
+
+      // 智能预加载：仅当任意 passage 含 Python 代码时预加载 Skulpt
+      const _hasPython = Object.values(passages).some(t => /py[:\s\n\r]/i.test(t));
+      if (_hasPython) loadPythonEnv().catch(e => console.warn(e));
+
+      // 启动
+      if (startPassageName) {
+        displayPassage(startPassageName);
+      } else {
+        storyEl.innerHTML = "<h1>暂无内容</h1>";
+      }
+    })();
+  </script>
+</body>
+</html>
